@@ -24,9 +24,12 @@ public final class OrderingDtos {
 
     public record UpdateLineRequest(@Positive int quantity) {}
 
-    /** Place the order from a resolved, checkout-ready cart. */
+    /** Place the order from a resolved, checkout-ready cart. timing defaults to immediate;
+     *  a scheduled timing requires a slotId (Story 6.1). */
     public record CheckoutRequest(
         @NotBlank String deliveryAddress,
         Double lat,
-        Double lng) {}
+        Double lng,
+        String timing,
+        String slotId) {}
 }

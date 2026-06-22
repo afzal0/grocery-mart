@@ -40,6 +40,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/ping", "/api/v1/auth/**", "/actuator/health/**", "/actuator/info").permitAll()
                 .requestMatchers("/api/v1/payments/webhook").permitAll()   // signature-verified, not JWT (NFR-SEC-04)
+                .requestMatchers("/ws/**").permitAll()                     // STOMP handshake (live tracking)
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

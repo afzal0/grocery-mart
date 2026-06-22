@@ -11,23 +11,27 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.grocerymart.api.delivery.DeliveryService;
 import com.grocerymart.api.identity.ApiException;
 import com.grocerymart.api.ordering.OrderingDtos.CheckoutRequest;
 
 /**
  * Epic 5 (Story 5.4): single-store checkout. Validates stock, rejects a closed store, snapshots
  * prices at placement, and creates exactly one order aggregate (no order_group) — idempotent on
- * the order:checkout key. Payment moves the order to paid via the wallet/card services.
+ * the order:checkout key. Payment moves the order to paid via the wallet/card services. Also
+ * creates the delivery aggregate + books any scheduled slot (Epic 6).
  */
 @Service
 public class OrderService {
 
     private final JdbcTemplate jdbc;
     private final CartService carts;
+    private final DeliveryService delivery;
 
-    public OrderService(JdbcTemplate jdbc, CartService carts) {
+    public OrderService(JdbcTemplate jdbc, CartService carts, DeliveryService delivery) {
         this.jdbc = jdbc;
         this.carts = carts;
+        this.delivery = delivery;
     }
 
     @Transactional
@@ -101,6 +105,7 @@ public class OrderService {
         if (!shortfalls.isEmpty()) {
             throw ApiException.unprocessable("insufficient stock for: " + String.join(", ", shortfalls));
         }
+        delivery.assertInRange(storeId, req.lat(), req.lng());   // Story 6.2: block out-of-range addresses
 
         Map<String, Object> totals = carts.totals(storeId, subtotal, currency, req.lat(), req.lng());
         UUID orderId = jdbc.queryForObject(
@@ -117,6 +122,9 @@ public class OrderService {
                 orderId, l.get("store_product_id"), l.get("canonical_product_id"),
                 l.get("name"), l.get("qty"), l.get("price"), currency);
         }
+
+        // Create the delivery aggregate (+ book a scheduled slot atomically, Story 6.1).
+        delivery.createForOrder(orderId, req.timing(), req.slotId() == null ? null : UUID.fromString(req.slotId()));
 
         jdbc.update("DELETE FROM cart WHERE id = ?", cartId);   // cart consumed by placement
         return orderView(customerId, orderId);

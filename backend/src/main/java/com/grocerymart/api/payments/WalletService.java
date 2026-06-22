@@ -11,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.grocerymart.api.delivery.DeliveryService;
 import com.grocerymart.api.identity.ApiException;
 
 /**
@@ -24,11 +25,14 @@ public class WalletService {
     private final JdbcTemplate jdbc;
     private final StripeStubProvider stripe;
     private final SettlementService settlement;
+    private final DeliveryService delivery;
 
-    public WalletService(JdbcTemplate jdbc, StripeStubProvider stripe, SettlementService settlement) {
+    public WalletService(JdbcTemplate jdbc, StripeStubProvider stripe, SettlementService settlement,
+                         DeliveryService delivery) {
         this.jdbc = jdbc;
         this.stripe = stripe;
         this.settlement = settlement;
+        this.delivery = delivery;
     }
 
     @Transactional(readOnly = true)
@@ -134,6 +138,7 @@ public class WalletService {
         jdbc.update("UPDATE orders SET payment_status = 'paid', payment_method = 'wallet', updated_at = now() "
             + "WHERE id = ?", orderId);
         settlement.recordCharge(orderId, storeId, total, (BigDecimal) order.get("gst_amount"), currency);
+        delivery.onOrderPaid(orderId);   // immediate deliveries enter the dispatch queue
         return lockableOrder(customerId, orderId);
     }
 

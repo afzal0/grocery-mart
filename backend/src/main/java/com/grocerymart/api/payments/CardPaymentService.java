@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.grocerymart.api.delivery.DeliveryService;
 import com.grocerymart.api.identity.ApiException;
 
 /**
@@ -26,13 +27,16 @@ public class CardPaymentService {
     private final JdbcTemplate jdbc;
     private final StripeStubProvider stripe;
     private final SettlementService settlement;
+    private final DeliveryService delivery;
     private final int reservationTtlMinutes;
 
     public CardPaymentService(JdbcTemplate jdbc, StripeStubProvider stripe, SettlementService settlement,
+                              DeliveryService delivery,
                               @Value("${grocerymart.payments.reservation-ttl-minutes}") int reservationTtlMinutes) {
         this.jdbc = jdbc;
         this.stripe = stripe;
         this.settlement = settlement;
+        this.delivery = delivery;
         this.reservationTtlMinutes = reservationTtlMinutes;
     }
 
@@ -117,6 +121,7 @@ public class CardPaymentService {
             + "WHERE id = ?", orderId);
         settlement.recordCharge(orderId, (UUID) order.get("store_id"),
             (BigDecimal) order.get("grand_total"), (BigDecimal) order.get("gst_amount"), (String) order.get("currency"));
+        delivery.onOrderPaid(orderId);   // immediate deliveries enter the dispatch queue
     }
 
     // ---- helpers ---------------------------------------------------------------------------
