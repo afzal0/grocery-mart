@@ -126,6 +126,14 @@ public class CatalogService {
 
     // ---- Story 3.7: admin merge queue ----
 
+    /** All shops with status + owner — admin approval surface. */
+    public List<Map<String, Object>> listAllShops() {
+        return jdbc.queryForList(
+            "SELECT s.id, s.name, s.status, s.is_open, s.address, "
+            + "u.email AS owner_email, s.created_at "
+            + "FROM shop s JOIN app_user u ON u.id = s.owner_id ORDER BY s.created_at DESC");
+    }
+
     public List<Map<String, Object>> mergeQueue() {
         return jdbc.queryForList(
             "SELECT c.id AS candidate_id, c.similarity, "

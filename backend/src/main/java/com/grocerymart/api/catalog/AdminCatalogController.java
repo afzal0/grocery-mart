@@ -38,6 +38,12 @@ public class AdminCatalogController {
         return Map.of("shopId", id.toString(), "status", "rejected");
     }
 
+    /** All shops with status — drives the admin approval surface. */
+    @GetMapping("/shops")
+    public List<Map<String, Object>> shops() {
+        return catalog.listAllShops();
+    }
+
     @GetMapping("/merge-queue")
     public List<Map<String, Object>> mergeQueue() {
         return catalog.mergeQueue();

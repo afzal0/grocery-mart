@@ -24,3 +24,10 @@ backend/target/
 .idea/
 .vscode/
 *.iml
+
+# macOS AppleDouble files (exFAT volume artifacts)
+._*
+.AppleDouble
+
+# Playwright MCP output
+.playwright-mcp/

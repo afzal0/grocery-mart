@@ -1,7 +1,7 @@
 @import '../../../packages/design-tokens/liquid-glass.css';
 
-/* Admin portal accent (violet → pink) */
-:root { --gm-accent: #a78bfa; --gm-accent-2: #f472b6; }
+/* Admin portal accent (violet → orchid) */
+:root { --gm-accent: #a78bfa; --gm-accent-2: #f0abfc; }
 
 .gm-landing { min-height: 100vh; display: grid; place-items: center; padding: 2rem; }
 .gm-card { width: min(560px, 100%); padding: 2.6rem 2.4rem; text-align: center; }
@@ -20,4 +20,146 @@
 .gm-input::placeholder { color: var(--gm-text-dim); }
 .gm-input:focus { border-color: var(--gm-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gm-accent) 22%, transparent); }
 .gm-error { color: #fda4af; font-size: 0.85rem; }
-.gm-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+.gm-btn:disabled { opacity: 0.6; cursor: default; transform: none; box-shadow: none; }
+.gm-btn:disabled:hover { transform: none; box-shadow: none; }
+
+/* =========================================================================
+   Admin console shell — app frame, topbar, tabs
+   ========================================================================= */
+.gm-app { min-height: 100vh; display: flex; flex-direction: column; }
+
+.gm-topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; padding: 0.9rem 1.6rem;
+  background: color-mix(in srgb, var(--gm-bg-0) 72%, transparent);
+  backdrop-filter: blur(var(--gm-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--gm-blur)) saturate(150%);
+  border-bottom: 1px solid var(--gm-glass-brd);
+}
+.gm-brand { display: flex; align-items: center; gap: 0.7rem; font-weight: 700; font-size: 1.1rem; letter-spacing: -0.01em; }
+.gm-topbar-right { display: flex; align-items: center; gap: 0.9rem; }
+.gm-whoami { font-size: 0.78rem; color: var(--gm-text-dim); text-align: right; line-height: 1.3; }
+.gm-btn.gm-btn-ghost {
+  background: var(--gm-glass-bg-strong); color: var(--gm-text);
+  border: 1px solid var(--gm-glass-brd); box-shadow: none;
+}
+.gm-btn.gm-btn-ghost:hover { box-shadow: none; background: var(--gm-glass-bg-strong); border-color: var(--gm-accent); }
+.gm-btn.gm-btn-sm { padding: 0.5rem 0.95rem; font-size: 0.82rem; }
+
+.gm-tabs {
+  display: flex; gap: 0.35rem; flex-wrap: wrap;
+  padding: 0.8rem 1.6rem 0;
+}
+.gm-tab {
+  appearance: none; font: inherit; cursor: pointer;
+  padding: 0.6rem 1.05rem; border-radius: var(--gm-radius-sm) var(--gm-radius-sm) 0 0;
+  background: transparent; color: var(--gm-text-dim);
+  border: 1px solid transparent; border-bottom: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.gm-tab:hover { color: var(--gm-text); }
+.gm-tab[aria-selected='true'] {
+  color: var(--gm-text);
+  background: var(--gm-glass-bg);
+  border-color: var(--gm-glass-brd);
+  box-shadow: inset 0 2px 0 var(--gm-accent);
+}
+
+.gm-main { flex: 1; padding: 1.4rem 1.6rem 3rem; max-width: 1280px; width: 100%; margin: 0 auto; }
+
+/* Panels & section headers */
+.gm-panel { padding: 1.5rem 1.6rem; }
+.gm-panel + .gm-panel { margin-top: 1.2rem; }
+.gm-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap; margin-bottom: 1.1rem;
+}
+.gm-panel-head h2 { margin: 0; font-size: 1.3rem; letter-spacing: -0.01em; }
+.gm-panel-head p { margin: 0.25rem 0 0; color: var(--gm-text-dim); font-size: 0.85rem; }
+.gm-toolbar { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: flex-end; }
+
+/* Metric tiles */
+.gm-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.2rem; }
+.gm-metric { padding: 1.1rem 1.2rem; }
+.gm-metric .label { font-size: 0.78rem; color: var(--gm-text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.gm-metric .value { font-size: 1.7rem; font-weight: 700; margin-top: 0.35rem; }
+.gm-metric .value.accent { color: transparent; background: linear-gradient(120deg, var(--gm-accent), var(--gm-accent-2)); -webkit-background-clip: text; background-clip: text; }
+
+/* =========================================================================
+   Tables
+   ========================================================================= */
+.gm-table-wrap { overflow-x: auto; border-radius: var(--gm-radius-sm); }
+.gm-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.gm-table th, .gm-table td { text-align: left; padding: 0.75rem 0.9rem; vertical-align: middle; }
+.gm-table thead th {
+  position: sticky; top: 0;
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--gm-text-dim); font-weight: 600;
+  border-bottom: 1px solid var(--gm-glass-brd);
+  background: color-mix(in srgb, var(--gm-bg-1) 60%, transparent);
+}
+.gm-table tbody tr { border-bottom: 1px solid color-mix(in srgb, var(--gm-glass-brd) 55%, transparent); }
+.gm-table tbody tr:last-child { border-bottom: none; }
+.gm-table tbody tr:hover { background: color-mix(in srgb, var(--gm-accent) 7%, transparent); }
+.gm-table td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.gm-table .muted { color: var(--gm-text-dim); }
+.gm-row-actions { display: flex; gap: 0.45rem; justify-content: flex-end; }
+
+/* =========================================================================
+   Badges
+   ========================================================================= */
+.gm-badge {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.22rem 0.6rem; border-radius: 999px;
+  font-size: 0.74rem; font-weight: 600; letter-spacing: 0.01em;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.gm-badge.ok       { color: #6ee7b7; background: rgba(52, 211, 153, 0.12); border-color: rgba(52, 211, 153, 0.35); }
+.gm-badge.warn     { color: #fcd34d; background: rgba(251, 191, 36, 0.12); border-color: rgba(251, 191, 36, 0.35); }
+.gm-badge.danger   { color: #fda4af; background: rgba(248, 113, 113, 0.12); border-color: rgba(248, 113, 113, 0.35); }
+.gm-badge.info     { color: #c4b5fd; background: rgba(167, 139, 250, 0.14); border-color: rgba(167, 139, 250, 0.40); }
+.gm-badge.neutral  { color: var(--gm-text-dim); background: var(--gm-glass-bg-strong); border-color: var(--gm-glass-brd); }
+
+/* =========================================================================
+   Inline forms (create/payout/manager) & filters
+   ========================================================================= */
+.gm-inline-form { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: flex-end; }
+.gm-field { display: flex; flex-direction: column; gap: 0.3rem; }
+.gm-field label { font-size: 0.74rem; color: var(--gm-text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.gm-field .gm-input { padding: 0.6rem 0.8rem; min-width: 0; }
+.gm-field.grow { flex: 1 1 180px; }
+.gm-select {
+  padding: 0.6rem 0.8rem; font: inherit; color: var(--gm-text);
+  background: rgba(255,255,255,0.05); border: 1px solid var(--gm-glass-brd);
+  border-radius: var(--gm-radius-sm); outline: none;
+}
+.gm-select:focus { border-color: var(--gm-accent); }
+
+/* Collapsible sub-form card */
+.gm-subcard { padding: 1.1rem 1.2rem; margin-top: 0.9rem; }
+.gm-subcard h3 { margin: 0 0 0.8rem; font-size: 1rem; }
+
+/* =========================================================================
+   State blocks: loading / error / empty
+   ========================================================================= */
+.gm-state { padding: 2.4rem 1.6rem; text-align: center; color: var(--gm-text-dim); }
+.gm-state.gm-error-state { color: #fda4af; }
+.gm-state .gm-state-title { font-size: 1rem; color: var(--gm-text); margin-bottom: 0.4rem; }
+.gm-spinner {
+  width: 26px; height: 26px; margin: 0 auto 0.9rem; border-radius: 50%;
+  border: 3px solid var(--gm-glass-brd); border-top-color: var(--gm-accent);
+  animation: gm-spin 0.8s linear infinite;
+}
+@keyframes gm-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .gm-spinner { animation: none; } }
+
+.gm-flash { padding: 0.7rem 1rem; border-radius: var(--gm-radius-sm); font-size: 0.85rem; margin-bottom: 1rem; }
+.gm-flash.ok { color: #6ee7b7; background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.3); }
+.gm-flash.bad { color: #fda4af; background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); }
+
+.gm-link-btn {
+  appearance: none; background: none; border: none; padding: 0; font: inherit;
+  color: var(--gm-accent-2); cursor: pointer; text-decoration: underline;
+}
+.gm-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.8rem; }
