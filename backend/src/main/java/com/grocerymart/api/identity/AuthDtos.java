@@ -2,6 +2,7 @@ package com.grocerymart.api.identity;
 
 import java.util.List;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -17,10 +18,29 @@ public final class AuthDtos {
         @NotBlank String phone,
         @NotBlank @Size(min = 6, max = 6) String code) {}
 
+    public record PortalLoginRequest(
+        @NotBlank @Email String email,
+        @NotBlank String password) {}
+
+    public record RegisterRequest(
+        @NotBlank @Email String email,
+        @NotBlank @Size(min = 8, message = "password must be at least 8 characters") String password,
+        String role,
+        String displayName) {}
+
+    public record RefreshRequest(@NotBlank String refreshToken) {}
+
+    public record LogoutRequest(@NotBlank String refreshToken) {}
+
+    public record ResetRequest(@NotBlank @Email String email) {}
+
+    public record ResetConfirmRequest(
+        @NotBlank String token,
+        @NotBlank @Size(min = 8) String newPassword) {}
+
     public record AuthResponse(
         String accessToken,
         String refreshToken,
         String userId,
-        String phone,
         List<String> roles) {}
 }

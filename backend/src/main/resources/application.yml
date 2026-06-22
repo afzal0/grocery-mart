@@ -2,7 +2,7 @@ spring:
   application:
     name: grocery-mart-api
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5433/grocery_mart}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/grocery_mart}   # native Postgres 17 (Docker VM corrupted; see decision R20)
     username: ${POSTGRES_USER:grocery}
     password: ${POSTGRES_PASSWORD:grocery}
   jpa:
@@ -30,3 +30,6 @@ management:
       show-details: when_authorized
       probes:
         enabled: true
+  health:
+    redis:
+      enabled: false        # Redis not run natively yet (added back with Docker/native Redis later)
