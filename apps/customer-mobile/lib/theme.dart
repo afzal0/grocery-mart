@@ -174,7 +174,19 @@ class GmGlass extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = DecoratedBox(
+    // Only build a Material/InkWell when the card is actually tappable — a large disabled
+    // InkWell ink surface renders as an opaque grey rectangle on the web (CanvasKit).
+    final Widget inner = onTap == null
+        ? Padding(padding: padding, child: child)
+        : Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(radius),
+              onTap: onTap,
+              child: Padding(padding: padding, child: child),
+            ),
+          );
+    final card = Container(
       decoration: BoxDecoration(
         color: strong ? Gm.glassFillStrong : Gm.surface,
         borderRadius: BorderRadius.circular(radius),
@@ -183,17 +195,10 @@ class GmGlass extends StatelessWidget {
           BoxShadow(color: Color(0x14B08A5A), blurRadius: 22, offset: Offset(0, 10)),
         ],
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(radius),
-          onTap: onTap,
-          child: Padding(padding: padding, child: child),
-        ),
-      ),
+      clipBehavior: Clip.antiAlias,
+      child: inner,
     );
-    final clipped = ClipRRect(borderRadius: BorderRadius.circular(radius), child: card);
-    return margin == null ? clipped : Padding(padding: margin!, child: clipped);
+    return margin == null ? card : Padding(padding: margin!, child: card);
   }
 }
 
