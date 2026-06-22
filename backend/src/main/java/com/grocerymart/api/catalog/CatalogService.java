@@ -164,6 +164,81 @@ public class CatalogService {
             + "WHERE match_key % ? OR match_key ILIKE '%' || ? || '%' ORDER BY sim DESC LIMIT 20", key, key, key);
     }
 
+    // ---- Stories 3.3 / 3.9 / 3.10: profile, manual edits, bulk CSV ----
+
+    public Map<String, Object> getMyShop(UUID ownerId) {
+        Map<String, Object> shop = jdbc.query(
+            "SELECT id, name, description, cuisine_tags, status FROM shop WHERE owner_id = ? ORDER BY created_at DESC LIMIT 1",
+            rs -> {
+                if (!rs.next()) return null;
+                String desc = rs.getString("description");
+                Object[] tags = (Object[]) rs.getArray("cuisine_tags").getArray();
+                return Map.of(
+                    "shopId", rs.getObject("id").toString(),
+                    "name", rs.getString("name"),
+                    "description", desc == null ? "" : desc,
+                    "cuisineTags", List.of(tags),
+                    "status", rs.getString("status"));
+            }, ownerId);
+        if (shop == null) throw ApiException.badRequest("No store yet.");
+        return shop;
+    }
+
+    @Transactional
+    public void updateMyShop(UUID ownerId, String name, List<String> cuisineTags, String description) {
+        UUID shopId = ownerShop(ownerId);
+        String[] tags = cuisineTags == null ? null : cuisineTags.toArray(String[]::new);
+        jdbc.update("UPDATE shop SET name = COALESCE(?, name), description = COALESCE(?, description), "
+            + "cuisine_tags = COALESCE(?, cuisine_tags), updated_at = now() WHERE id = ?",
+            name, description, tags, shopId);
+    }
+
+    public List<Map<String, Object>> listMyProducts(UUID ownerId) {
+        return jdbc.queryForList(
+            "SELECT sp.id, sp.raw_brand, sp.raw_name, sp.raw_size, sp.price_amount, sp.currency, sp.stock, "
+            + "sp.match_status, sp.canonical_product_id FROM store_product sp "
+            + "JOIN shop s ON s.id = sp.shop_id WHERE s.owner_id = ? ORDER BY sp.created_at DESC", ownerId);
+    }
+
+    @Transactional
+    public void updateStoreProduct(UUID ownerId, UUID productId, BigDecimal price, Integer stock) {
+        int n = jdbc.update(
+            "UPDATE store_product SET price_amount = COALESCE(?, price_amount), stock = COALESCE(?, stock), "
+            + "updated_at = now() WHERE id = ? AND shop_id IN (SELECT id FROM shop WHERE owner_id = ?)",
+            price, stock, productId, ownerId);
+        if (n == 0) throw new ApiException(HttpStatus.FORBIDDEN, "Product not found in your store.");
+    }
+
+    @Transactional
+    public Map<String, Object> bulkUploadCsv(UUID ownerId, String csv) {
+        int created = 0;
+        int failed = 0;
+        for (String line : csv.split("\\r?\\n")) {
+            String t = line.trim();
+            if (t.isEmpty() || t.toLowerCase(Locale.ROOT).startsWith("name,")) continue; // skip blanks/header
+            String[] c = t.split(",");
+            if (c.length < 4) { failed++; continue; }
+            try {
+                createStoreProduct(ownerId, c[0].trim(),
+                    c[1].trim().isEmpty() ? null : c[1].trim(),
+                    c[2].trim().isEmpty() ? null : c[2].trim(),
+                    new BigDecimal(c[3].trim()), "AUD",
+                    c.length > 4 ? Integer.parseInt(c[4].trim()) : 0);
+                created++;
+            } catch (RuntimeException e) {
+                failed++;
+            }
+        }
+        return Map.of("created", created, "failed", failed);
+    }
+
+    private UUID ownerShop(UUID ownerId) {
+        UUID id = jdbc.query("SELECT id FROM shop WHERE owner_id = ? ORDER BY created_at DESC LIMIT 1",
+            rs -> rs.next() ? (UUID) rs.getObject("id") : null, ownerId);
+        if (id == null) throw ApiException.badRequest("No store yet.");
+        return id;
+    }
+
     // ---- helpers ----
 
     private static String normalize(String... parts) {

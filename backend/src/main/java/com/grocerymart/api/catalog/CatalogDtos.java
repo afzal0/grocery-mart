@@ -22,4 +22,10 @@ public final class CatalogDtos {
         @NotNull @DecimalMin("0.0") BigDecimal price,
         String currency,
         @Min(0) int stock) {}
+
+    public record UpdateShopRequest(String name, List<String> cuisineTags, String description) {}
+
+    public record UpdateProductRequest(
+        @DecimalMin("0.0") BigDecimal price,
+        @Min(0) Integer stock) {}
 }
