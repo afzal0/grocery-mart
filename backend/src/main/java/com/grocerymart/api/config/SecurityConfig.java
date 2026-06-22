@@ -39,6 +39,7 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/ping", "/api/v1/auth/**", "/actuator/health/**", "/actuator/info").permitAll()
+                .requestMatchers("/api/v1/payments/webhook").permitAll()   // signature-verified, not JWT (NFR-SEC-04)
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

@@ -20,6 +20,15 @@ spring:
 server:
   port: 8080
 
+grocerymart:
+  pricing:
+    delivery-base: 3.00        # flat component of the distance-based delivery fee
+    delivery-per-km: 1.20      # added per km between store and delivery address (PostGIS)
+    gst-rate: 0.10             # AU GST, tax-INCLUSIVE (component of grand total, not added on top)
+  payments:
+    stripe-webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_dev_grocery_mart_secret}
+    reservation-ttl-minutes: 15   # card auth holds stock this long before the sweeper releases it
+
 management:
   endpoints:
     web:
