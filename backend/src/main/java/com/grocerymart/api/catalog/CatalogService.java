@@ -185,12 +185,17 @@ public class CatalogService {
     }
 
     @Transactional
-    public void updateMyShop(UUID ownerId, String name, List<String> cuisineTags, String description) {
+    public void updateMyShop(UUID ownerId, String name, List<String> cuisineTags, String description,
+                             String address, Double lat, Double lng) {
         UUID shopId = ownerShop(ownerId);
         String[] tags = cuisineTags == null ? null : cuisineTags.toArray(String[]::new);
         jdbc.update("UPDATE shop SET name = COALESCE(?, name), description = COALESCE(?, description), "
-            + "cuisine_tags = COALESCE(?, cuisine_tags), updated_at = now() WHERE id = ?",
-            name, description, tags, shopId);
+            + "cuisine_tags = COALESCE(?, cuisine_tags), address = COALESCE(?, address), updated_at = now() WHERE id = ?",
+            name, description, tags, address, shopId);
+        if (lat != null && lng != null) {
+            jdbc.update("UPDATE shop SET location = ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography WHERE id = ?",
+                lng, lat, shopId);
+        }
     }
 
     public List<Map<String, Object>> listMyProducts(UUID ownerId) {

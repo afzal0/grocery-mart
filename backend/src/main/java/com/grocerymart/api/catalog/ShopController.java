@@ -54,7 +54,8 @@ public class ShopController {
     @PutMapping("/shops/me")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateShop(@RequestBody UpdateShopRequest req, Authentication auth) {
-        catalog.updateMyShop(uid(auth), req.name(), req.cuisineTags(), req.description());
+        catalog.updateMyShop(uid(auth), req.name(), req.cuisineTags(), req.description(),
+            req.address(), req.lat(), req.lng());
     }
 
     @GetMapping("/shops/me/products")
