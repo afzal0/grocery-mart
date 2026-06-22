@@ -7,19 +7,27 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
- * Phase-0 walking-skeleton security: stateless, deny-by-default, health/ping public,
- * with CORS open to the local portal dev servers. Real authn/authz (phone OTP, social,
- * portal pw, admin TOTP, JWT, RLS tenant claims) and a locked-down CORS allowlist
- * (NFR-SEC-05) arrive in Epic 2 / Epic 9.
+ * Stateless, deny-by-default security. Public: health/ping + the auth endpoints.
+ * Everything else requires a valid Bearer JWT (validated by {@link JwtAuthFilter}).
+ * CORS is open to the local portal dev servers (locked down for prod in Epic 9).
  */
 @Configuration
 public class SecurityConfig {
+
+    private final JwtAuthFilter jwtAuthFilter;
+
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
+    }
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -28,15 +36,20 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/ping", "/actuator/health/**", "/actuator/info").permitAll()
-                .anyRequest().authenticated());
+                .requestMatchers("/api/v1/ping", "/api/v1/auth/**", "/actuator/health/**", "/actuator/info").permitAll()
+                .anyRequest().authenticated())
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        // Dev: the shop (5173) and admin (5174) portals. Locked to a real allowlist in prod.
         cfg.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
