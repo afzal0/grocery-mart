@@ -212,6 +212,34 @@ public class CatalogService {
             + "JOIN shop s ON s.id = sp.shop_id WHERE s.owner_id = ? ORDER BY sp.created_at DESC", ownerId);
     }
 
+    /** Epic 9 (Story 9.2): per-submitted-item merge outcome for the owning shop only. */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> mergeOutcomes(UUID ownerId) {
+        return jdbc.query(
+            "SELECT sp.id, sp.raw_name, sp.match_status, sp.updated_at, cp.name AS master_name "
+            + "FROM store_product sp JOIN shop s ON s.id = sp.shop_id "
+            + "LEFT JOIN canonical_product cp ON cp.id = sp.canonical_product_id "
+            + "WHERE s.owner_id = ? ORDER BY sp.created_at DESC", (rs, i) -> {
+                String status = rs.getString("match_status");
+                String matchType = switch (status) {
+                    case "auto_linked" -> "auto-merged";
+                    case "merged_confirmed" -> "manual-merged";
+                    case "candidate" -> "pending standardization";
+                    case "pending" -> "pending standardization";
+                    default -> rs.getObject("master_name") == null ? "standalone (unmatched)" : status;
+                };
+                Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("storeProductId", rs.getObject("id").toString());
+                m.put("submittedName", rs.getString("raw_name"));
+                m.put("masterProduct", rs.getString("master_name"));
+                m.put("matchType", rs.getObject("master_name") == null && !"pending".equals(status)
+                    ? "standalone (unmatched)" : matchType);
+                m.put("standardizedAt", rs.getTimestamp("updated_at") == null ? null
+                    : rs.getTimestamp("updated_at").toInstant().toString());
+                return m;
+            }, ownerId);
+    }
+
     @Transactional
     public void updateStoreProduct(UUID ownerId, UUID productId, BigDecimal price, Integer stock) {
         int n = jdbc.update(

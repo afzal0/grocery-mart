@@ -1,0 +1,24 @@
+# gitleaks config (Story 9.12). The CI gate (.github/workflows/security.yml) fails the build if any
+# secret pattern is detected in the diff or history. This allowlist lets known dev placeholders and
+# test fixtures pass WITHOUT disabling the gate globally.
+title = "grocery-mart gitleaks"
+
+[extend]
+useDefault = true   # inherit gitleaks' built-in rules (Stripe keys, AWS keys, generic tokens, …)
+
+[allowlist]
+description = "Dev placeholders and test fixtures — not live credentials"
+regexes = [
+  # Local dev DB credentials (Postgres on localhost; never used outside dev)
+  '''POSTGRES_PASSWORD:grocery''',
+  '''jdbc:postgresql://localhost:5432/grocery_mart''',
+  # Dev-only Stripe webhook secret placeholder (real value lives in AWS Secrets Manager)
+  '''whsec_dev_grocery_mart_secret''',
+  # Dev admin bootstrap password (rotated/disabled before any non-dev env)
+  '''admin-dev-pass''',
+]
+paths = [
+  '''.*/test/.*''',
+  '''.*_test\.py''',
+  '''compliance/.*''',
+]

@@ -32,6 +32,10 @@ grocerymart:
   notifications:
     push-max-attempts: 5            # bounded FCM retry before an outbox event is marked failed
     token-retention-days: 60        # device tokens unseen this long are expired by the hygiene sweep
+  retention:
+    audit-days: 365                 # audit_log rows kept this long (longer than operational data)
+  ratelimit:
+    requests-per-minute: 300        # per-principal/IP sliding-window cap (429 over the limit)
   payments:
     stripe-webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_dev_grocery_mart_secret}
     reservation-ttl-minutes: 15   # card auth holds stock this long before the sweeper releases it
@@ -45,7 +49,12 @@ management:
     health:
       show-details: when_authorized
       probes:
-        enabled: true
+        enabled: true        # /actuator/health/liveness + /readiness (Story 9.14)
+      group:
+        readiness:
+          include: readinessState,db   # readiness fails if the DB is unavailable -> taken out of rotation
+        liveness:
+          include: livenessState
   health:
     redis:
       enabled: false        # Redis not run natively yet (added back with Docker/native Redis later)

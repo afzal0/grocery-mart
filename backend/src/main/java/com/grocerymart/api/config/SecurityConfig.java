@@ -41,6 +41,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/ping", "/api/v1/auth/**", "/actuator/health/**", "/actuator/info").permitAll()
                 .requestMatchers("/api/v1/payments/webhook").permitAll()   // signature-verified, not JWT (NFR-SEC-04)
                 .requestMatchers("/ws/**").permitAll()                     // STOMP handshake (live tracking)
+                .requestMatchers("/api/v1/privacy").permitAll()            // public privacy policy (APP, Story 9.6)
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
