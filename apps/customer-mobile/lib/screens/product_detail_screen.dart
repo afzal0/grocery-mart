@@ -106,7 +106,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ? null
           : FloatingActionButton.extended(
               backgroundColor: Gm.accent,
-              foregroundColor: const Color(0xFF06281C),
+              foregroundColor: Colors.white,
               onPressed: _writeReview,
               icon: const Icon(Icons.rate_review_outlined),
               label: const Text('Write review'),

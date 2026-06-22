@@ -55,7 +55,8 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
+        cfg.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174",
+            "http://localhost:5180", "http://localhost:5181"));   // 5180 customer web, 5181 driver web (Flutter)
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
         cfg.setAllowCredentials(true);

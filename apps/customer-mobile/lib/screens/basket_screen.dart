@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import 'cart_screen.dart';
-import 'discover_screen.dart';
 
 class _BasketItem {
   _BasketItem({

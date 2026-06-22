@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -37,30 +35,33 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      const DiscoverScreen(),
+      DiscoverScreen(onCheckedOut: _goToOrders),
       BasketScreen(onCheckedOut: _goToOrders),
       OrdersScreen(key: _ordersKey),
       AccountScreen(onSignOut: _signOut),
     ];
 
     return Scaffold(
-      extendBody: true,
+      extendBody: false,
       body: GmBackground(
         child: IndexedStack(index: _index, children: pages),
       ),
-      bottomNavigationBar: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: NavigationBarTheme(
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Gm.surface,
+          border: Border(top: BorderSide(color: Gm.line)),
+          boxShadow: [BoxShadow(color: Color(0x12000000), blurRadius: 18, offset: Offset(0, -4))],
+        ),
+        child: NavigationBarTheme(
             data: NavigationBarThemeData(
-              backgroundColor: Colors.white.withValues(alpha: 0.04),
-              indicatorColor: Gm.accent.withValues(alpha: 0.22),
+              backgroundColor: Colors.transparent,
+              indicatorColor: Gm.accent.withValues(alpha: 0.14),
               labelTextStyle: WidgetStateProperty.resolveWith((states) {
                 final selected = states.contains(WidgetState.selected);
                 return TextStyle(
                   fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: selected ? Gm.text : Gm.textDim,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  color: selected ? Gm.accent : Gm.textDim,
                 );
               }),
               iconTheme: WidgetStateProperty.resolveWith((states) {
@@ -70,7 +71,9 @@ class _MainShellState extends State<MainShell> {
             ),
             child: NavigationBar(
               selectedIndex: _index,
-              height: 66,
+              height: 64,
+              backgroundColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
               onDestinationSelected: (i) {
                 setState(() => _index = i);
                 if (i == 2) _ordersKey.currentState?.refresh();
@@ -96,7 +99,6 @@ class _MainShellState extends State<MainShell> {
             ),
           ),
         ),
-      ),
     );
   }
 }

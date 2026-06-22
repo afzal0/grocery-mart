@@ -33,6 +33,13 @@ public class DiscoveryController {
         return discovery.nearbyShops(lat, lng, radiusKm * 1000, cuisine);
     }
 
+    /** One store's in-stock, canonically-linked catalog — the store "restaurant page". */
+    @GetMapping("/stores/{shopId}/products")
+    public List<Map<String, Object>> storeProducts(@org.springframework.web.bind.annotation.PathVariable
+                                                    java.util.UUID shopId) {
+        return discovery.storeProducts(shopId);
+    }
+
     /** Whole-basket comparison across nearby stores (Stories 4.3/4.4). */
     @PostMapping("/basket/compare")
     public Map<String, Object> compare(@Valid @RequestBody BasketCompareRequest req) {

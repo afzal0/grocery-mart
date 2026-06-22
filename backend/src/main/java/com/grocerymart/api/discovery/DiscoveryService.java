@@ -26,13 +26,16 @@ public class DiscoveryService {
         this.jdbc = jdbc;
     }
 
-    /** Active stores within radius (metres) of (lat,lng), optionally filtered by cuisine tag. */
+    /** Active stores within radius (metres) of (lat,lng), optionally filtered by cuisine tag.
+     *  Includes the store's aggregate rating so the customer home can show it on each card. */
     public List<Map<String, Object>> nearbyShops(double lat, double lng, double radiusMeters, String cuisine) {
-        String sql = "SELECT id, name, cuisine_tags, address, "
-            + "ST_Distance(location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography) AS distance_m "
-            + "FROM shop WHERE status = 'active' AND location IS NOT NULL "
-            + "AND ST_DWithin(location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?) "
-            + (cuisine != null ? "AND ? = ANY(cuisine_tags) " : "")
+        String sql = "SELECT s.id, s.name, s.cuisine_tags, s.address, "
+            + "ST_Distance(s.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography) AS distance_m, "
+            + "sra.avg_rating, sra.review_count "
+            + "FROM shop s LEFT JOIN store_rating_aggregate sra ON sra.shop_id = s.id "
+            + "WHERE s.status = 'active' AND s.location IS NOT NULL "
+            + "AND ST_DWithin(s.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?) "
+            + (cuisine != null ? "AND ? = ANY(s.cuisine_tags) " : "")
             + "ORDER BY distance_m";
         Object[] args = cuisine != null
             ? new Object[] { lng, lat, lng, lat, radiusMeters, cuisine }
@@ -44,8 +47,38 @@ public class DiscoveryService {
             m.put("address", rs.getString("address") == null ? "" : rs.getString("address"));
             m.put("cuisineTags", List.of((Object[]) rs.getArray("cuisine_tags").getArray()));
             m.put("distanceM", Math.round(rs.getDouble("distance_m")));
+            java.math.BigDecimal avg = rs.getBigDecimal("avg_rating");
+            m.put("rating", avg == null ? null : avg);
+            m.put("reviewCount", rs.getInt("review_count"));
             return m;
         }, args);
+    }
+
+    /** One store's in-stock, canonically-linked products with category + product rating. */
+    public List<Map<String, Object>> storeProducts(UUID shopId) {
+        return jdbc.query(
+            "SELECT sp.id AS store_product_id, sp.canonical_product_id, sp.raw_name, sp.raw_brand, "
+            + "sp.raw_size, sp.price_amount, sp.currency, sp.stock, cp.category, "
+            + "pra.avg_rating, pra.review_count "
+            + "FROM store_product sp JOIN canonical_product cp ON cp.id = sp.canonical_product_id "
+            + "LEFT JOIN product_rating_aggregate pra ON pra.canonical_product_id = sp.canonical_product_id "
+            + "WHERE sp.shop_id = ? AND sp.match_status IN ('auto_linked','merged_confirmed') AND sp.stock > 0 "
+            + "ORDER BY cp.category, sp.raw_name",
+            (rs, i) -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("storeProductId", rs.getObject("store_product_id").toString());
+                m.put("canonicalProductId", rs.getObject("canonical_product_id").toString());
+                m.put("name", rs.getString("raw_name"));
+                m.put("brand", rs.getString("raw_brand"));
+                m.put("size", rs.getString("raw_size"));
+                m.put("price", rs.getBigDecimal("price_amount"));
+                m.put("currency", rs.getString("currency"));
+                m.put("stock", rs.getInt("stock"));
+                m.put("category", rs.getString("category"));
+                m.put("rating", rs.getBigDecimal("avg_rating"));
+                m.put("reviewCount", rs.getInt("review_count"));
+                return m;
+            }, shopId);
     }
 
     /** Compute each nearby store's total for the basket; rank cheapest fully-available first. */

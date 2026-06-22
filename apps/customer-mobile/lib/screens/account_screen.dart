@@ -117,8 +117,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                 colors: [Gm.accent, Gm.accent2]),
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(Icons.person,
-                              color: Color(0xFF06281C)),
+                          child: const Icon(Icons.person, color: Colors.white),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
