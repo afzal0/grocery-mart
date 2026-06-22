@@ -1,0 +1,26 @@
+# Node / Nx
+node_modules/
+.nx/
+dist/
+*.log
+
+# Java / Maven
+backend/target/
+.gradle/
+
+# Flutter / Dart
+**/.dart_tool/
+**/build/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# Env / secrets
+.env
+.env.local
+*.local
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.iml

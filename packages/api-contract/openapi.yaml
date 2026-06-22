@@ -1,0 +1,60 @@
+openapi: 3.1.0
+info:
+  title: Grocery-Mart API
+  version: 0.1.0
+  description: >
+    OpenAPI-first contract for the Grocery-Mart platform. This spec is the single
+    source of truth for cross-client shapes; typed clients are generated from it
+    (TypeScript for the React portals, Dart for the Flutter apps). Conventions:
+    snake_case in the DB, camelCase on the wire, ISO-8601 UTC timestamps,
+    money as { amount, currency }, errors as RFC 9457 application/problem+json.
+servers:
+  - url: http://localhost:8080
+    description: Local dev
+tags:
+  - name: meta
+    description: Liveness & metadata
+paths:
+  /api/v1/ping:
+    get:
+      operationId: ping
+      tags: [meta]
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingResponse'
+components:
+  schemas:
+    PingResponse:
+      type: object
+      required: [status, service, time]
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: grocery-mart-api
+        time:
+          type: string
+          format: date-time
+    Problem:
+      description: RFC 9457 problem details
+      type: object
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount: { type: string, example: '12.50', description: 'Decimal string; never a float' }
+        currency: { type: string, example: AUD, description: 'ISO-4217' }

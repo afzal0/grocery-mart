@@ -1,0 +1,8 @@
+packages:
+  - 'apps/shop-portal'
+  - 'apps/admin-portal'
+  - 'packages/*'
+allowBuilds:
+  nx: set this to true or false
+onlyBuiltDependencies:
+  - nx

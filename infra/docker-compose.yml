@@ -1,0 +1,52 @@
+# Grocery-Mart local dev stack.  Usage: docker compose -f infra/docker-compose.yml up -d
+services:
+  postgres:
+    # imresamu/* is the arm64 build of PostGIS 3.5 (official postgis/postgis:16-3.5
+    # has no linux/arm64 manifest). Swap to postgis/postgis on amd64 hosts.
+    image: imresamu/postgis:16-3.5
+    container_name: gm-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-grocery_mart}
+      POSTGRES_USER: ${POSTGRES_USER:-grocery}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-grocery}
+    ports:
+      - "5433:5432"          # host 5433 (5432 is used by another local Postgres)
+    volumes:
+      - gm-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-grocery} -d ${POSTGRES_DB:-grocery_mart}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: gm-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # S3-compatible local object storage (product media)
+  minio:
+    image: minio/minio:latest
+    container_name: gm-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - gm-miniodata:/data
+
+  # NOTE: PgBouncer (transaction-mode, for RLS SET LOCAL) is added in Story 1.4
+  # once the RLS baseline + tenant GUC wiring land.
+
+volumes:
+  gm-pgdata:
+  gm-miniodata:

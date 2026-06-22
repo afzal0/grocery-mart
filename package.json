@@ -1,0 +1,16 @@
+{
+  "name": "grocery-mart",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.8.0",
+  "scripts": {
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "backend:run": "cd backend && ./mvnw spring-boot:run",
+    "shop:dev": "pnpm --filter shop-portal dev",
+    "admin:dev": "pnpm --filter admin-portal dev"
+  },
+  "devDependencies": {
+    "nx": "21.2.0"
+  }
+}

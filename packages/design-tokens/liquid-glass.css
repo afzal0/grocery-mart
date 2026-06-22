@@ -1,0 +1,78 @@
+/* Grocery-Mart — Liquid Glass design tokens (canonical).
+   Modern glassmorphism: translucent frosted surfaces, blur, depth, fluid motion.
+   Shared across the React portals; mirrored as a Flutter theme in the apps. */
+:root {
+  --gm-bg-0: #070b16;
+  --gm-bg-1: #111a30;
+  --gm-accent: #34d399;        /* emerald — overridden per client */
+  --gm-accent-2: #22d3ee;      /* cyan */
+  --gm-text: #eaf1ff;
+  --gm-text-dim: #9db0d4;
+  --gm-glass-bg: rgba(255, 255, 255, 0.06);
+  --gm-glass-bg-strong: rgba(255, 255, 255, 0.10);
+  --gm-glass-brd: rgba(255, 255, 255, 0.14);
+  --gm-glass-hi: rgba(255, 255, 255, 0.28);
+  --gm-radius: 22px;
+  --gm-radius-sm: 12px;
+  --gm-blur: 20px;
+  --gm-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  --gm-font: -apple-system, "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--gm-text);
+  font-family: var(--gm-font);
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(1200px 620px at 8% -12%, color-mix(in srgb, var(--gm-accent) 30%, transparent), transparent 60%),
+    radial-gradient(1000px 700px at 112% 6%, color-mix(in srgb, var(--gm-accent-2) 22%, transparent), transparent 55%),
+    linear-gradient(165deg, var(--gm-bg-0), var(--gm-bg-1));
+  background-attachment: fixed;
+}
+
+/* Frosted glass surface */
+.gm-glass {
+  background: var(--gm-glass-bg);
+  border: 1px solid var(--gm-glass-brd);
+  border-radius: var(--gm-radius);
+  backdrop-filter: blur(var(--gm-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--gm-blur)) saturate(150%);
+  box-shadow: var(--gm-shadow), inset 0 1px 0 var(--gm-glass-hi);
+}
+
+.gm-pill {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.4rem 0.9rem; border-radius: 999px;
+  background: var(--gm-glass-bg-strong);
+  border: 1px solid var(--gm-glass-brd);
+  font-size: 0.85rem; color: var(--gm-text-dim);
+  backdrop-filter: blur(12px);
+}
+
+.gm-dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
+.gm-dot.online  { color: var(--gm-accent);  background: var(--gm-accent); }
+.gm-dot.offline { color: #f87171; background: #f87171; }
+.gm-dot.pending { color: #fbbf24; background: #fbbf24; }
+
+.gm-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.8rem 1.4rem; border: none; border-radius: var(--gm-radius-sm);
+  font: inherit; font-weight: 600; color: #06281c; cursor: pointer;
+  background: linear-gradient(135deg, var(--gm-accent), var(--gm-accent-2));
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--gm-accent) 40%, transparent);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.gm-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px color-mix(in srgb, var(--gm-accent) 55%, transparent); }
+
+.gm-gradient-text {
+  background: linear-gradient(120deg, var(--gm-accent), var(--gm-accent-2));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gm-btn { transition: none; }
+}

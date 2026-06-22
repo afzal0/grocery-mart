@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: grocery-mart-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/grocery_mart}
+    username: ${POSTGRES_USER:grocery}
+    password: ${POSTGRES_PASSWORD:grocery}
+  jpa:
+    hibernate:
+      ddl-auto: validate          # Flyway owns the schema; Hibernate only validates
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true

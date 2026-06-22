@@ -1,0 +1,11 @@
+@import '../../../packages/design-tokens/liquid-glass.css';
+
+/* Admin portal accent (violet → pink) */
+:root { --gm-accent: #a78bfa; --gm-accent-2: #f472b6; }
+
+.gm-landing { min-height: 100vh; display: grid; place-items: center; padding: 2rem; }
+.gm-card { width: min(560px, 100%); padding: 2.6rem 2.4rem; text-align: center; }
+.gm-card h1 { margin: 1.1rem 0 0.4rem; font-size: clamp(2rem, 4vw, 2.8rem); letter-spacing: -0.02em; }
+.gm-card p { color: var(--gm-text-dim); line-height: 1.55; margin: 0 0 1.6rem; }
+.gm-foot { margin-top: 1.6rem; font-size: 0.8rem; color: var(--gm-text-dim); }
+.gm-btn { color: #1a0b2e; }
