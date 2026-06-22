@@ -1,0 +1,31 @@
+# Render blueprint for the Grocery-Mart backend (Docker). The database is external (Supabase),
+# so it is NOT defined here — you set the connection env vars in the Render dashboard.
+# Deploy: push this repo to GitHub, then Render → New → Blueprint → pick the repo.
+services:
+  - type: web
+    name: grocery-mart-api
+    runtime: docker
+    repo: https://github.com/CHANGE-ME/grocery-mart   # set to your GitHub repo
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free                       # free spins down after ~15 min idle (cold start ~30-50s)
+    region: oregon                   # pick the region closest to your Supabase project
+    healthCheckPath: /api/v1/ping    # public, DB-independent — keeps deploys from flapping
+    autoDeploy: true
+    envVars:
+      # ---- Supabase connection (use the SESSION pooler, port 5432 — Flyway needs advisory locks) ----
+      - key: DB_URL
+        sync: false                  # jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require
+      - key: POSTGRES_USER
+        sync: false                  # postgres.<your-project-ref>
+      - key: POSTGRES_PASSWORD
+        sync: false                  # your Supabase database password
+      # ---- App secrets / config ----
+      - key: JWT_SECRET
+        generateValue: true          # Render generates a strong value (>= 32 bytes)
+      - key: GROCERYMART_CORS_ORIGINS
+        sync: false                  # https://<shop>.vercel.app,https://<admin>.vercel.app,https://<customer>.vercel.app
+      - key: STRIPE_WEBHOOK_SECRET
+        value: whsec_dev_grocery_mart_secret   # dev stub — fine for the demo
+      - key: REDIS_HOST
+        value: disabled              # no Redis in the demo; health check for it is already off

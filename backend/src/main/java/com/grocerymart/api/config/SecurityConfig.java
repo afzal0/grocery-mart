@@ -1,7 +1,10 @@
 package com.grocerymart.api.config;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -24,6 +27,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    /** Extra allowed CORS origins for deployed frontends, comma-separated. Set on the host, e.g.
+     *  GROCERYMART_CORS_ORIGINS=https://shop.vercel.app,https://admin.vercel.app,https://app.vercel.app
+     *  Wildcard patterns (https://*.vercel.app) are supported. Local dev origins are always allowed. */
+    @Value("${grocerymart.cors.origins:}")
+    private String extraOrigins;
 
     private final JwtAuthFilter jwtAuthFilter;
 
@@ -54,9 +63,14 @@ public class SecurityConfig {
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
+        // Local dev origins are always allowed; deployed origins come from GROCERYMART_CORS_ORIGINS.
+        List<String> patterns = new ArrayList<>(List.of(
+            "http://localhost:5173", "http://localhost:5174", "http://localhost:5180", "http://localhost:5181"));
+        if (extraOrigins != null && !extraOrigins.isBlank()) {
+            Arrays.stream(extraOrigins.split(",")).map(String::trim).filter(s -> !s.isEmpty()).forEach(patterns::add);
+        }
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174",
-            "http://localhost:5180", "http://localhost:5181"));   // 5180 customer web, 5181 driver web (Flutter)
+        cfg.setAllowedOriginPatterns(patterns);   // patterns support wildcards (https://*.vercel.app)
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
         cfg.setAllowCredentials(true);
