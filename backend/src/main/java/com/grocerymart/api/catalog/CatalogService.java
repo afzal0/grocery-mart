@@ -28,9 +28,11 @@ public class CatalogService {
     private static final double FUZZY = 0.75;
 
     private final JdbcTemplate jdbc;
+    private final com.grocerymart.api.notifications.OutboxService outbox;
 
-    public CatalogService(JdbcTemplate jdbc) {
+    public CatalogService(JdbcTemplate jdbc, com.grocerymart.api.notifications.OutboxService outbox) {
         this.jdbc = jdbc;
+        this.outbox = outbox;
     }
 
     // ---- Stories 3.1 / 3.2: onboarding + approval ----
@@ -48,6 +50,11 @@ public class CatalogService {
         int n = jdbc.update("UPDATE shop SET status = ? WHERE id = ?", status, shopId);
         if (n == 0) {
             throw ApiException.badRequest("Shop not found.");
+        }
+        if ("active".equals(status)) {
+            UUID ownerId = jdbc.queryForObject("SELECT owner_id FROM shop WHERE id = ?", UUID.class, shopId);
+            outbox.emitNotification(ownerId, "ShopApproved", "shop",
+                "Shop approved", "Your shop is approved and now live", null);   // Story 7.7
         }
     }
 

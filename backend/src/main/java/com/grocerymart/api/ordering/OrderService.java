@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.grocerymart.api.delivery.DeliveryService;
 import com.grocerymart.api.identity.ApiException;
+import com.grocerymart.api.notifications.OutboxService;
 import com.grocerymart.api.ordering.OrderingDtos.CheckoutRequest;
 
 /**
@@ -27,11 +28,13 @@ public class OrderService {
     private final JdbcTemplate jdbc;
     private final CartService carts;
     private final DeliveryService delivery;
+    private final OutboxService outbox;
 
-    public OrderService(JdbcTemplate jdbc, CartService carts, DeliveryService delivery) {
+    public OrderService(JdbcTemplate jdbc, CartService carts, DeliveryService delivery, OutboxService outbox) {
         this.jdbc = jdbc;
         this.carts = carts;
         this.delivery = delivery;
+        this.outbox = outbox;
     }
 
     @Transactional
@@ -127,6 +130,8 @@ public class OrderService {
         delivery.createForOrder(orderId, req.timing(), req.slotId() == null ? null : UUID.fromString(req.slotId()));
 
         jdbc.update("DELETE FROM cart WHERE id = ?", cartId);   // cart consumed by placement
+        outbox.emitNotification(customerId, "OrderPlaced", "orders",
+            "Order placed", "Your order has been placed; complete payment to confirm", orderId);
         return orderView(customerId, orderId);
     }
 

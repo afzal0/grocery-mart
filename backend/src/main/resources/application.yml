@@ -29,6 +29,9 @@ grocerymart:
   delivery:
     location-retention-hours: 24    # driver GPS fixes purged this long after a delivery completes
     slot-ready-lead-minutes: 60     # a scheduled order enters the dispatch queue this early
+  notifications:
+    push-max-attempts: 5            # bounded FCM retry before an outbox event is marked failed
+    token-retention-days: 60        # device tokens unseen this long are expired by the hygiene sweep
   payments:
     stripe-webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_dev_grocery_mart_secret}
     reservation-ttl-minutes: 15   # card auth holds stock this long before the sweeper releases it

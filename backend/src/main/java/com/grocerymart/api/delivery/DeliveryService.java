@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.grocerymart.api.common.PricingService;
 import com.grocerymart.api.identity.ApiException;
-import com.grocerymart.api.notifications.NotificationService;
+import com.grocerymart.api.notifications.OutboxService;
 
 /**
  * Epic 6: delivery slots, distance quoting/out-of-range, manual dispatch + driver accept/reject,
@@ -30,19 +30,19 @@ public class DeliveryService {
 
     private final JdbcTemplate jdbc;
     private final PricingService pricing;
-    private final NotificationService notify;
+    private final OutboxService outbox;
     private final SimpMessagingTemplate stomp;
     private final PasswordEncoder encoder;
     private final double maxServiceKm;
     private final int slotReadyLeadMinutes;
 
-    public DeliveryService(JdbcTemplate jdbc, PricingService pricing, NotificationService notify,
+    public DeliveryService(JdbcTemplate jdbc, PricingService pricing, OutboxService outbox,
                            SimpMessagingTemplate stomp, PasswordEncoder encoder,
                            @Value("${grocerymart.pricing.max-service-km}") double maxServiceKm,
                            @Value("${grocerymart.delivery.slot-ready-lead-minutes}") int slotReadyLeadMinutes) {
         this.jdbc = jdbc;
         this.pricing = pricing;
-        this.notify = notify;
+        this.outbox = outbox;
         this.stomp = stomp;
         this.encoder = encoder;
         this.maxServiceKm = maxServiceKm;
@@ -162,6 +162,8 @@ public class DeliveryService {
             rs -> rs.next() ? rs.getString(1) : null, orderId);
         if (timing == null) return;
         transition(orderId, "immediate".equals(timing) ? "ready" : "pending");
+        outbox.emitNotification(customerOf(orderId), "OrderConfirmed", "orders",
+            "Payment confirmed", "Your order is confirmed and being prepared", orderId);
     }
 
     // ---- Dispatch queue + assignment (Story 6.3) -------------------------------------------
@@ -199,7 +201,8 @@ public class DeliveryService {
         if (roster == null) throw ApiException.unprocessable("driver is not on this shop's roster or is unavailable");
         jdbc.update("UPDATE delivery SET driver_id = ?, assigned_at = now() WHERE order_id = ?", driverId, orderId);
         transition(orderId, "assigned");
-        notify.push(driverId, "job_offer", "New delivery job", "You have a pending delivery to accept", orderId);
+        outbox.emitNotification(driverId, "DriverAssigned", "delivery",
+            "New delivery job", "You have a pending delivery to accept", orderId);
     }
 
     // ---- Driver accept/reject/pickup/deliver (Stories 6.4, 6.7) ----------------------------
@@ -227,7 +230,8 @@ public class DeliveryService {
         requireDriverState(driverId, orderId, "assigned");
         transition(orderId, "accepted");
         jdbc.update("UPDATE delivery SET accepted_at = now() WHERE order_id = ?", orderId);
-        notify.push(customerOf(orderId), "driver_accepted", "Driver assigned", "A driver accepted your delivery", orderId);
+        outbox.emitNotification(customerOf(orderId), "DriverAccepted", "delivery",
+            "Driver assigned", "A driver accepted your delivery", orderId);
     }
 
     @Transactional
@@ -235,8 +239,8 @@ public class DeliveryService {
         requireDriverState(driverId, orderId, "assigned");
         jdbc.update("UPDATE delivery SET driver_id = NULL, assigned_at = NULL WHERE order_id = ?", orderId);
         transition(orderId, "ready");   // back to the dispatch queue for reassignment
-        notify.push(shopOwnerOf(orderId), "driver_rejected", "Driver rejected job",
-            "A driver rejected a delivery; please reassign", orderId);
+        outbox.emitNotification(shopOwnerOf(orderId), "DriverRejected", "delivery",
+            "Driver rejected job", "A driver rejected a delivery; please reassign", orderId);
     }
 
     @Transactional
@@ -244,7 +248,8 @@ public class DeliveryService {
         requireDriverState(driverId, orderId, "accepted");
         transition(orderId, "picked_up");
         jdbc.update("UPDATE delivery SET picked_up_at = now() WHERE order_id = ?", orderId);
-        notify.push(customerOf(orderId), "out_for_delivery", "On the way", "Your order is on the way", orderId);
+        outbox.emitNotification(customerOf(orderId), "OrderOnTheWay", "delivery",
+            "On the way", "Your order is on the way", orderId);
     }
 
     @Transactional
@@ -252,8 +257,10 @@ public class DeliveryService {
         requireDriverState(driverId, orderId, "picked_up");
         transition(orderId, "delivered");
         jdbc.update("UPDATE delivery SET delivered_at = now() WHERE order_id = ?", orderId);
-        notify.push(customerOf(orderId), "delivered", "Delivered", "Your order has been delivered", orderId);
-        notify.push(shopOwnerOf(orderId), "delivered", "Order delivered", "An order was delivered", orderId);
+        outbox.emitNotification(customerOf(orderId), "OrderDelivered", "delivery",
+            "Delivered", "Your order has been delivered", orderId);
+        outbox.emitNotification(shopOwnerOf(orderId), "OrderDelivered", "delivery",
+            "Order delivered", "An order was delivered", orderId);
         // final tracking frame so a subscribed customer view closes out cleanly
         stomp.convertAndSend("/topic/orders/" + orderId + "/tracking",
             (Object) Map.of("orderId", orderId.toString(), "state", "delivered"));
