@@ -9,3 +9,15 @@
 .gm-card p { color: var(--gm-text-dim); line-height: 1.55; margin: 0 0 1.6rem; }
 .gm-foot { margin-top: 1.6rem; font-size: 0.8rem; color: var(--gm-text-dim); }
 .gm-btn { color: #1a0b2e; }
+
+/* Auth form */
+.gm-card.gm-form { display: flex; flex-direction: column; gap: 0.9rem; }
+.gm-input {
+  width: 100%; padding: 0.85rem 1rem; font: inherit; color: var(--gm-text);
+  background: rgba(255,255,255,0.05); border: 1px solid var(--gm-glass-brd);
+  border-radius: var(--gm-radius-sm); outline: none;
+}
+.gm-input::placeholder { color: var(--gm-text-dim); }
+.gm-input:focus { border-color: var(--gm-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gm-accent) 22%, transparent); }
+.gm-error { color: #fda4af; font-size: 0.85rem; }
+.gm-btn:disabled { opacity: 0.6; cursor: default; transform: none; }

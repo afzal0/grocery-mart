@@ -1,33 +1,34 @@
 import { useEffect, useState } from 'react';
-
-const API = (import.meta.env.VITE_API_BASE_URL as string) ?? 'http://localhost:8080';
-type Health = 'pending' | 'online' | 'offline';
+import { LoginScreen } from './components/LoginScreen';
+import { Dashboard } from './components/Dashboard';
+import { getAccess, clearTokens } from './auth';
+import { fetchMe, type Me } from './lib/api';
 
 export default function App() {
-  const [health, setHealth] = useState<Health>('pending');
-  const [service, setService] = useState('');
+  const [user, setUser] = useState<Me | null>(null);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    fetch(`${API}/api/v1/ping`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d: { service: string }) => { setHealth('online'); setService(d.service); })
-      .catch(() => setHealth('offline'));
+    const token = getAccess();
+    if (!token) {
+      setChecking(false);
+      return;
+    }
+    fetchMe(token)
+      .then(setUser)
+      .catch(() => clearTokens())
+      .finally(() => setChecking(false));
   }, []);
 
-  return (
-    <main className="gm-landing">
-      <section className="gm-glass gm-card">
-        <span className="gm-pill">
-          <span className={`gm-dot ${health}`} />
-          backend {health}{service && ` · ${service}`}
-        </span>
-        <h1>
-          Grocery-Mart <span className="gm-gradient-text">Admin</span>
-        </h1>
-        <p>Approve stores &amp; NGOs, govern the catalog merge queue, and oversee the platform.</p>
-        <button className="gm-btn" type="button">Open console</button>
-        <div className="gm-foot">Liquid Glass · React + Vite · Epic 1 walking skeleton</div>
-      </section>
-    </main>
-  );
+  if (checking) {
+    return (
+      <main className="gm-landing">
+        <div className="gm-glass gm-card">Loading…</div>
+      </main>
+    );
+  }
+
+  return user
+    ? <Dashboard user={user} onLogout={() => setUser(null)} />
+    : <LoginScreen onLoggedIn={setUser} />;
 }
