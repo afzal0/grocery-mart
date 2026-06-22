@@ -1,6 +1,6 @@
 // Minimal typed client for the auth API. (Swap for the generated @grocery-mart/api-contract
 // client when the OpenAPI spec covers the auth paths — see packages/api-contract.)
-import { getAccess } from '../auth';
+import { getAccess, getRefresh, setTokens, clearTokens } from '../auth';
 
 const API = (import.meta.env.VITE_API_BASE_URL as string) ?? 'http://localhost:8080';
 const BASE = `${API}/api/v1`;
@@ -25,39 +25,74 @@ async function problem(res: Response): Promise<string> {
 
 type Json = Record<string, unknown> | unknown[];
 
-function authHeaders(extra?: Record<string, string>): HeadersInit {
-  const token = getAccess();
-  return {
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...extra,
-  };
+// Silent token refresh: the access token is short-lived (15 min). On a 401/403 we rotate it once
+// via the stored refresh token and retry, so the session survives expiry without a re-login.
+// Concurrent callers share a single in-flight refresh.
+let refreshing: Promise<string | null> | null = null;
+function refreshAccess(): Promise<string | null> {
+  if (refreshing) return refreshing;
+  const rt = getRefresh();
+  if (!rt) return Promise.resolve(null);
+  refreshing = (async () => {
+    try {
+      const res = await fetch(`${BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+      if (!res.ok) {
+        clearTokens();
+        return null;
+      }
+      const auth = (await res.json()) as AuthResponse;
+      setTokens(auth.accessToken, auth.refreshToken);
+      return auth.accessToken;
+    } catch {
+      return null;
+    } finally {
+      refreshing = null;
+    }
+  })();
+  return refreshing;
+}
+
+/** fetch with the Bearer token; on 401/403 refresh once and retry. Returns the raw Response. */
+async function authedFetch(path: string, init: RequestInit = {}, extraHeaders?: Record<string, string>): Promise<Response> {
+  const build = (token: string | null): RequestInit => ({
+    ...init,
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extraHeaders },
+  });
+  let res = await fetch(`${BASE}${path}`, build(getAccess()));
+  if ((res.status === 401 || res.status === 403) && getRefresh()) {
+    const fresh = await refreshAccess();
+    if (fresh) res = await fetch(`${BASE}${path}`, build(fresh));
+  }
+  return res;
 }
 
 /** GET that parses JSON, surfacing the problem+json "detail" on failure. */
 async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
+  const res = await authedFetch(path);
   if (!res.ok) throw new Error(await problem(res));
   return res.json() as Promise<T>;
 }
 
 /** Send a JSON body and parse the JSON response. */
 async function apiSend<T>(path: string, method: string, body?: Json): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await authedFetch(path, {
     method,
-    headers: authHeaders(body !== undefined ? { 'Content-Type': 'application/json' } : undefined),
     body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  }, body !== undefined ? { 'Content-Type': 'application/json' } : undefined);
   if (!res.ok) throw new Error(await problem(res));
   return res.json() as Promise<T>;
 }
 
 /** Send a JSON body where the endpoint returns 204 No Content. */
 async function apiSendNoContent(path: string, method: string, body?: Json): Promise<void> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await authedFetch(path, {
     method,
-    headers: authHeaders(body !== undefined ? { 'Content-Type': 'application/json' } : undefined),
     body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  }, body !== undefined ? { 'Content-Type': 'application/json' } : undefined);
   if (!res.ok) throw new Error(await problem(res));
 }
 
@@ -73,9 +108,11 @@ export async function portalLogin(email: string, password: string): Promise<Auth
 }
 
 export async function fetchMe(accessToken: string): Promise<Me> {
-  const res = await fetch(`${BASE}/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  let res = await fetch(`${BASE}/me`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (res.status === 401 || res.status === 403) {
+    const fresh = await refreshAccess();
+    if (fresh) res = await fetch(`${BASE}/me`, { headers: { Authorization: `Bearer ${fresh}` } });
+  }
   if (!res.ok) throw new Error('unauthorized');
   return res.json();
 }
@@ -113,7 +150,7 @@ export type UpdateShopBody = {
  * so the Profile screen can show the "Create shop" form instead of an error.
  */
 export async function getMyShop(): Promise<Shop | null> {
-  const res = await fetch(`${BASE}/shops/me`, { headers: authHeaders() });
+  const res = await authedFetch('/shops/me');
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(await problem(res));
   const text = await res.text();
@@ -175,11 +212,7 @@ export function updateStoreProduct(id: string, price: number, stock: number): Pr
 
 /** Bulk CSV upload. The body is raw CSV ("name,brand,size,price,stock" per line). */
 export async function bulkUploadProducts(csv: string): Promise<BulkUploadResult> {
-  const res = await fetch(`${BASE}/store-products/bulk`, {
-    method: 'POST',
-    headers: authHeaders({ 'Content-Type': 'text/csv' }),
-    body: csv,
-  });
+  const res = await authedFetch('/store-products/bulk', { method: 'POST', body: csv }, { 'Content-Type': 'text/csv' });
   if (!res.ok) throw new Error(await problem(res));
   return res.json() as Promise<BulkUploadResult>;
 }

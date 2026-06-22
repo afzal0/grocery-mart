@@ -1,7 +1,38 @@
 // Minimal typed client for the auth API (see packages/api-contract for the generated client).
-import { getAccess } from '../auth';
+import { getAccess, getRefresh, setTokens, clearTokens } from '../auth';
 
 const API = (import.meta.env.VITE_API_BASE_URL as string) ?? 'http://localhost:8080';
+
+// Silent token refresh: the access token is short-lived (15 min). On a 401/403 we rotate it once
+// using the stored refresh token and retry, so the session survives expiry without re-login.
+// Concurrent callers share a single in-flight refresh.
+let refreshing: Promise<string | null> | null = null;
+function refreshAccess(): Promise<string | null> {
+  if (refreshing) return refreshing;
+  const rt = getRefresh();
+  if (!rt) return Promise.resolve(null);
+  refreshing = (async () => {
+    try {
+      const res = await fetch(`${API}/api/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+      if (!res.ok) {
+        clearTokens();
+        return null;
+      }
+      const auth = (await res.json()) as AuthResponse;
+      setTokens(auth.accessToken, auth.refreshToken);
+      return auth.accessToken;
+    } catch {
+      return null;
+    } finally {
+      refreshing = null;
+    }
+  })();
+  return refreshing;
+}
 
 export type AuthResponse = {
   accessToken: string;
@@ -28,9 +59,15 @@ export async function portalLogin(email: string, password: string): Promise<Auth
 }
 
 export async function fetchMe(accessToken: string): Promise<Me> {
-  const res = await fetch(`${API}/api/v1/me`, {
+  let res = await fetch(`${API}/api/v1/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
+  if (res.status === 401 || res.status === 403) {
+    const fresh = await refreshAccess();
+    if (fresh) {
+      res = await fetch(`${API}/api/v1/me`, { headers: { Authorization: `Bearer ${fresh}` } });
+    }
+  }
   if (!res.ok) throw new Error('unauthorized');
   return res.json();
 }
@@ -58,7 +95,14 @@ async function request<T>(
   if (init.body !== undefined && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
-  const res = await fetch(`${API}/api/v1${path}`, { ...init, headers });
+  let res = await fetch(`${API}/api/v1${path}`, { ...init, headers });
+  if ((res.status === 401 || res.status === 403) && getRefresh()) {
+    const fresh = await refreshAccess();
+    if (fresh) {
+      headers.set('Authorization', `Bearer ${fresh}`);
+      res = await fetch(`${API}/api/v1${path}`, { ...init, headers });
+    }
+  }
   if (!res.ok) throw new Error(await problem(res));
   if (res.status === 204) return undefined as T;
   const text = await res.text();
