@@ -24,7 +24,8 @@ public final class OrderingDtos {
      *  is rejected with 400 at the controller (instead of reaching the service / DB). */
     public record ResolveCartRequest(
         @NotBlank String storeId,
-        @NotBlank @Pattern(regexp = "^[A-Z]{3}$", message = "currency must be a 3-letter ISO-4217 code") String currency,
+        @NotBlank @Pattern(regexp = com.grocerymart.api.payments.PaymentDtos.SUPPORTED_CURRENCY,
+                           message = "unsupported currency") String currency,
         @NotEmpty @Valid List<ResolveItem> items) {}
 
     public record UpdateLineRequest(@Positive int quantity) {}
