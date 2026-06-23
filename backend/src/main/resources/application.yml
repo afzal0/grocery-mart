@@ -21,6 +21,15 @@ server:
   port: 8080
 
 grocerymart:
+  rls:
+    # When true, authenticated requests run under the non-bypass `grocery_app` role so the V015
+    # Row-Level Security policies enforce tenant isolation at the DB layer. Default OFF — enable
+    # only after validating every authenticated query path against the policies in staging.
+    enforce: ${GROCERYMART_RLS_ENFORCE:false}
+  dev:
+    # Dev-only: log OTP codes / password-reset tokens so a local developer can use them. MUST stay
+    # false in any deployed environment (it leaks auth secrets to the log stream).
+    log-secrets: ${GROCERYMART_DEV_LOG_SECRETS:false}
   pricing:
     delivery-base: 3.00        # flat component of the distance-based delivery fee
     delivery-per-km: 1.20      # added per km between store and delivery address (PostGIS)
@@ -37,7 +46,7 @@ grocerymart:
   ratelimit:
     requests-per-minute: 300        # per-principal/IP sliding-window cap (429 over the limit)
   payments:
-    stripe-webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_dev_grocery_mart_secret}
+    stripe-webhook-secret: ${STRIPE_WEBHOOK_SECRET:}   # no committed default — blank => webhook verification fails closed
     reservation-ttl-minutes: 15   # card auth holds stock this long before the sweeper releases it
 
 management:

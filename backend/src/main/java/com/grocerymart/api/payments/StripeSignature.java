@@ -14,7 +14,11 @@ import javax.crypto.spec.SecretKeySpec;
 public final class StripeSignature {
     private StripeSignature() {}
 
+    /** Tolerance (seconds) for the signed timestamp, matching Stripe's SDK default. */
+    private static final long TOLERANCE_SECONDS = 300;
+
     public static boolean verify(String payload, String sigHeader, String secret) {
+        if (secret == null || secret.isBlank()) return false;   // no secret configured -> fail closed
         if (sigHeader == null || sigHeader.isBlank()) return false;
         String t = null, v1 = null;
         for (String part : sigHeader.split(",")) {
@@ -24,6 +28,14 @@ public final class StripeSignature {
             else if (kv[0].equals("v1")) v1 = kv[1];
         }
         if (t == null || v1 == null) return false;
+        try {
+            long ts = Long.parseLong(t.trim());
+            if (Math.abs(java.time.Instant.now().getEpochSecond() - ts) > TOLERANCE_SECONDS) {
+                return false;   // outside the tolerance window -> reject replays of old signed packets
+            }
+        } catch (NumberFormatException e) {
+            return false;
+        }
         String expected = hmacSha256Hex(t + "." + payload, secret);
         return constantTimeEquals(expected, v1);
     }

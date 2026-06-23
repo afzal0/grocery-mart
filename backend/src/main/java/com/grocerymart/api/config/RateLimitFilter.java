@@ -62,7 +62,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 if (i >= 0) return "u:" + new String(json).substring(i + 7, new String(json).indexOf('"', i + 7));
             } catch (Exception ignored) { /* fall through to IP */ }
         }
+        return "ip:" + clientIp(req);
+    }
+
+    /**
+     * Resolves the client IP for rate-limiting. A reverse proxy (Render's edge) APPENDS the real
+     * peer to X-Forwarded-For, so the proxy-added value is the LAST entry; the leftmost entries are
+     * attacker-controllable. Taking the last entry prevents the trivial "rotate X-Forwarded-For to
+     * get a fresh bucket per request" brute-force bypass. Falls back to the TCP peer when no XFF.
+     */
+    private String clientIp(HttpServletRequest req) {
         String fwd = req.getHeader("X-Forwarded-For");
-        return "ip:" + ((fwd != null && !fwd.isBlank()) ? fwd.split(",")[0].trim() : req.getRemoteAddr());
+        if (fwd == null || fwd.isBlank()) return req.getRemoteAddr();
+        String[] parts = fwd.split(",");
+        return parts[parts.length - 1].trim();
     }
 }

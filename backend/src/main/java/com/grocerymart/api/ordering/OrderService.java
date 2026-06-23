@@ -182,7 +182,9 @@ public class OrderService {
                 return m;
             }, orderId);
         if (o == null) throw ApiException.notFound("order not found");
-        if (customerId != null && !customerId.equals(o.get("customerId"))) {
+        // Always enforce ownership — a null customerId must NOT skip the check (latent BOLA).
+        // Admin read paths must use a dedicated, role-guarded method, not this customer view.
+        if (customerId == null || !customerId.equals(o.get("customerId"))) {
             throw ApiException.forbidden("not your order");
         }
         o.remove("customerId");

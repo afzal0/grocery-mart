@@ -157,8 +157,10 @@ public class WalletService {
     }
 
     private Map<String, Object> lockableOrder(UUID customerId, UUID orderId) {
+        // FOR UPDATE serializes concurrent payOrder() calls on the same order, preventing a TOCTOU
+        // double stock-decrement when two requests both read 'pending_payment' before either commits.
         Map<String, Object> o = jdbc.query(
-            "SELECT customer_id, store_id, currency, payment_status, grand_total, gst_amount FROM orders WHERE id = ?",
+            "SELECT customer_id, store_id, currency, payment_status, grand_total, gst_amount FROM orders WHERE id = ? FOR UPDATE",
             rs -> {
                 if (!rs.next()) return null;
                 Map<String, Object> m = new java.util.HashMap<>();

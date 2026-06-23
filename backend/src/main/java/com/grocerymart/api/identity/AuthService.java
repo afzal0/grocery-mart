@@ -27,20 +27,27 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final int MAX_ATTEMPTS = 5;
-    /** Roles a member of the public may self-register as. Never ADMIN/STAFF/DRIVER/NGO. */
-    private static final Set<String> SELF_REGISTERABLE = Set.of("CUSTOMER", "SHOP_OWNER");
+    /** Roles a member of the public may self-register as. CUSTOMER only — SHOP_OWNER/ADMIN/STAFF/
+     *  DRIVER/NGO are provisioned by an admin/invite flow (self-registering SHOP_OWNER let anyone
+     *  reach the shop-owner API unvetted). */
+    private static final Set<String> SELF_REGISTERABLE = Set.of("CUSTOMER");
 
     private final JdbcTemplate jdbc;
     private final PasswordEncoder encoder;
     private final OtpSender otpSender;
     private final JwtService jwt;
     private final SecureRandom random = new SecureRandom();
+    /** Dev-only: when true, OTP codes / reset tokens are logged so a local developer can retrieve
+     *  them. MUST remain false in any deployed environment (defaults false). */
+    private final boolean logSecrets;
 
-    public AuthService(JdbcTemplate jdbc, PasswordEncoder encoder, OtpSender otpSender, JwtService jwt) {
+    public AuthService(JdbcTemplate jdbc, PasswordEncoder encoder, OtpSender otpSender, JwtService jwt,
+            @org.springframework.beans.factory.annotation.Value("${grocerymart.dev.log-secrets:false}") boolean logSecrets) {
         this.jdbc = jdbc;
         this.encoder = encoder;
         this.otpSender = otpSender;
         this.jwt = jwt;
+        this.logSecrets = logSecrets;
     }
 
     // ---- Story 2.2: phone OTP -------------------------------------------------
@@ -95,7 +102,11 @@ public class AuthService {
             String token = randomToken();
             jdbc.update("INSERT INTO password_reset (user_id, token_hash, expires_at) "
                 + "VALUES (?, ?, now() + interval '30 minutes')", rows.get(0), sha256(token));
-            log.warn("DEV password reset for {}: token {}  (dev-only)", email, token);
+            // SECURITY: never log a live reset token in a deployed environment. Dev-only when
+            // grocerymart.dev.log-secrets=true; production must deliver via the (future) email channel.
+            if (logSecrets) {
+                log.warn("DEV password reset token for {}: {}  (dev-only)", email, token);
+            }
         }
         // Always succeed regardless of whether the email exists (no enumeration).
     }
@@ -125,7 +136,8 @@ public class AuthService {
             throw new ApiException(HttpStatus.FORBIDDEN, "You cannot self-register as " + r + ".");
         }
         if (!jdbc.queryForList("SELECT 1 FROM app_user WHERE email = ?", email).isEmpty()) {
-            throw ApiException.badRequest("Email already registered.");
+            // Generic message — do not confirm that the email is already registered (enumeration).
+            throw ApiException.badRequest("Registration could not be completed.");
         }
         UUID id = jdbc.queryForObject(
             "INSERT INTO app_user (email, display_name, password_hash) VALUES (?, ?, ?) RETURNING id",

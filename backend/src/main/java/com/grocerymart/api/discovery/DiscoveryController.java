@@ -3,6 +3,7 @@ package com.grocerymart.api.discovery;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,9 +15,13 @@ import com.grocerymart.api.discovery.DiscoveryDtos.BasketCompareRequest;
 
 import jakarta.validation.Valid;
 
-/** Customer discovery + basket comparison (Epic 4). Any authenticated user. */
+/** Customer discovery + basket comparison (Epic 4). Any authenticated user. The explicit
+ *  {@code @PreAuthorize} expresses authorization at the method layer too (defense in depth), so a
+ *  future change to the global SecurityConfig cannot silently expose stock levels / the expensive
+ *  PostGIS comparison queries to anonymous callers. */
 @RestController
 @RequestMapping("/api/v1")
+@PreAuthorize("isAuthenticated()")
 public class DiscoveryController {
 
     private final DiscoveryService discovery;
