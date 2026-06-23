@@ -61,7 +61,12 @@ public class AuditService {
             "SELECT id, actor_id, action, target_type, target_id, outcome, source_ip, created_at FROM audit_log WHERE 1=1 ");
         java.util.List<Object> args = new java.util.ArrayList<>();
         if (actor != null && !actor.isBlank()) { sql.append("AND actor_id = ? "); args.add(UUID.fromString(actor)); }
-        if (action != null && !action.isBlank()) { sql.append("AND action = ? "); args.add(action); }
+        if (action != null && !action.isBlank()) {
+            // M-8: action is a bound parameter (not injectable), but cap its length so a crafted
+            // oversized filter can't be used to abuse the admin query.
+            sql.append("AND action = ? ");
+            args.add(action.length() > 100 ? action.substring(0, 100) : action);
+        }
         sql.append("ORDER BY created_at DESC LIMIT ?"); args.add(lim);
         return jdbc.query(sql.toString(), (rs, i) -> {
             Map<String, Object> m = new LinkedHashMap<>();
@@ -83,7 +88,11 @@ public class AuditService {
             if (attrs == null) return null;
             var req = attrs.getRequest();
             String fwd = req.getHeader("X-Forwarded-For");
-            return (fwd != null && !fwd.isBlank()) ? fwd.split(",")[0].trim() : req.getRemoteAddr();
+            // Use the proxy-appended (rightmost) entry, not the spoofable leftmost, so audit_log
+            // source_ip cannot be poisoned by a forged X-Forwarded-For (consistent with RateLimitFilter).
+            if (fwd == null || fwd.isBlank()) return req.getRemoteAddr();
+            String[] parts = fwd.split(",");
+            return parts[parts.length - 1].trim();
         } catch (Exception e) {
             return null;
         }

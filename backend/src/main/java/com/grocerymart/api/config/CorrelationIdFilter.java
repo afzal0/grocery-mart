@@ -25,12 +25,15 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
 
     public static final String HEADER = "X-Request-Id";
     public static final String MDC_KEY = "traceId";
+    /** L-5: only honor a client-supplied id of this safe shape; otherwise generate one. Prevents
+     *  CR/LF/ANSI log-forging via an attacker-controlled X-Request-Id. */
+    private static final java.util.regex.Pattern SAFE_ID = java.util.regex.Pattern.compile("[A-Za-z0-9._-]{1,64}");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String traceId = request.getHeader(HEADER);
-        if (traceId == null || traceId.isBlank()) {
+        if (traceId == null || !SAFE_ID.matcher(traceId).matches()) {
             traceId = UUID.randomUUID().toString();
         }
         MDC.put(MDC_KEY, traceId);

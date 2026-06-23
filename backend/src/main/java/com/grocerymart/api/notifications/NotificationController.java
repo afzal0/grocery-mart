@@ -45,6 +45,8 @@ public class NotificationController {
     @PostMapping("/{id}/read")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void markOneRead(@PathVariable UUID id, Authentication auth) {
-        notifications.markOneRead(uid(auth), id);
+        if (!notifications.markOneRead(uid(auth), id)) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND, "notification not found");
+        }
     }
 }

@@ -113,8 +113,15 @@ public class NotificationService {
         jdbc.update("UPDATE notification SET read_at = now() WHERE user_id = ? AND read_at IS NULL", userId);
     }
 
-    public void markOneRead(UUID userId, UUID notificationId) {
+    /** Returns true if the notification belongs to the caller (whether or not it was already read);
+     *  false if it does not exist for this user, so the controller can return 404 without leaking
+     *  the existence of other users' notifications. */
+    public boolean markOneRead(UUID userId, UUID notificationId) {
+        Integer mine = jdbc.query("SELECT 1 FROM notification WHERE id = ? AND user_id = ?",
+            rs -> rs.next() ? 1 : null, notificationId, userId);
+        if (mine == null) return false;
         jdbc.update("UPDATE notification SET read_at = now() WHERE id = ? AND user_id = ? AND read_at IS NULL",
             notificationId, userId);
+        return true;
     }
 }
