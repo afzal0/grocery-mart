@@ -51,7 +51,9 @@ public class CartService {
             "INSERT INTO cart (customer_id, store_id, currency) VALUES (?, ?, ?) RETURNING id",
             UUID.class, customerId, storeId, currency);
 
+        // Resolve every line first so the display prices for the whole cart cost one query.
         List<String> missing = new ArrayList<>();
+        List<Map<String, Object>> resolved = new ArrayList<>();
         for (ResolveItem it : req.items()) {
             Map<String, Object> sp;
             boolean substitution = it.substituteStoreProductId() != null && !it.substituteStoreProductId().isBlank();
@@ -67,11 +69,25 @@ public class CartService {
                 throw ApiException.unprocessable("cross-currency basket rejected: line is " + spCurrency
                     + " but cart is " + currency);   // AR-12
             }
+            Map<String, Object> line = new java.util.HashMap<>(sp);
+            line.put("qty", it.quantity());
+            line.put("substitution", substitution);
+            resolved.add(line);
+        }
+
+        List<UUID> canonicalIds = resolved.stream()
+            .map(l -> (UUID) l.get("canonical_product_id")).filter(java.util.Objects::nonNull).toList();
+        Map<UUID, BigDecimal> maxima = pricing.displayPrices(canonicalIds, req.lat(), req.lng());
+
+        for (Map<String, Object> line : resolved) {
+            BigDecimal storePrice = (BigDecimal) line.get("price_amount");
+            BigDecimal display = pricing.displayPrice(storePrice, maxima.get((UUID) line.get("canonical_product_id")));
             jdbc.update("INSERT INTO cart_line (cart_id, store_product_id, canonical_product_id, qty, "
-                + "unit_price_amount, currency, is_substitution) VALUES (?, ?, ?, ?, ?, ?, ?) "
-                + "ON CONFLICT (cart_id, store_product_id) DO UPDATE SET qty = cart_line.qty + EXCLUDED.qty",
-                cartId, sp.get("id"), sp.get("canonical_product_id"), it.quantity(),
-                sp.get("price_amount"), spCurrency, substitution);
+                + "unit_price_amount, display_unit_price, currency, is_substitution) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                + "ON CONFLICT (cart_id, store_product_id) DO UPDATE SET qty = cart_line.qty + EXCLUDED.qty, "
+                + "display_unit_price = EXCLUDED.display_unit_price",
+                cartId, line.get("id"), line.get("canonical_product_id"), line.get("qty"),
+                storePrice, display, currency, line.get("substitution"));
         }
         return cartView(customerId, cartId, missing);
     }
@@ -102,31 +118,48 @@ public class CartService {
         return cartView(customerId, cartId, List.of());
     }
 
-    /** Story 5.3 — transparent total: items subtotal + distance delivery fee, with the
-     *  tax-inclusive GST component, all in the cart's single active currency. */
+    /** Story 5.3 — transparent total: items subtotal + distance delivery fee + the flat service
+     *  fee, with the tax-inclusive GST component, all in the cart's single active currency. */
     @Transactional(readOnly = true)
     public Map<String, Object> composeTotal(UUID customerId, UUID cartId, Double lat, Double lng) {
         Map<String, Object> cart = ownedCart(customerId, cartId);
         String currency = (String) cart.get("currency");
         UUID storeId = (UUID) cart.get("store_id");
-        BigDecimal subtotal = jdbc.queryForObject(
-            "SELECT COALESCE(SUM(unit_price_amount * qty), 0) FROM cart_line WHERE cart_id = ?",
-            BigDecimal.class, cartId);
-        return totals(storeId, subtotal, currency, lat, lng);
+        Map<String, Object> sums = jdbc.queryForMap(
+            "SELECT COALESCE(SUM(COALESCE(display_unit_price, unit_price_amount) * qty), 0) AS display_sum, "
+            + "COALESCE(SUM(unit_price_amount * qty), 0) AS store_sum FROM cart_line WHERE cart_id = ?",
+            cartId);
+        return totals(storeId, (BigDecimal) sums.get("display_sum"), (BigDecimal) sums.get("store_sum"),
+            currency, lat, lng);
     }
 
     // ---- shared total composition (used by ordering too) -----------------------------------
-    Map<String, Object> totals(UUID storeId, BigDecimal subtotal, String currency, Double lat, Double lng) {
-        subtotal = subtotal.setScale(2, java.math.RoundingMode.HALF_UP);
+
+    /**
+     * Compose the customer-facing total.
+     *
+     * <p>{@code displaySubtotal} is what the customer pays; {@code storeSubtotal} is what the
+     * vendor is owed. The spread becomes the customer's loyalty credits and the platform's margin.
+     * Only the credit COUNT is returned — never the store subtotal or the spread itself, since the
+     * response is rendered directly in the customer app.
+     */
+    Map<String, Object> totals(UUID storeId, BigDecimal displaySubtotal, BigDecimal storeSubtotal,
+                               String currency, Double lat, Double lng) {
+        displaySubtotal = displaySubtotal.setScale(2, java.math.RoundingMode.HALF_UP);
+        storeSubtotal = storeSubtotal.setScale(2, java.math.RoundingMode.HALF_UP);
         BigDecimal deliveryFee = pricing.deliveryFee(storeId, lat, lng);
-        BigDecimal grand = subtotal.add(deliveryFee);
+        BigDecimal platformFee = pricing.platformFee();
+        BigDecimal grand = displaySubtotal.add(deliveryFee).add(platformFee);
         BigDecimal gst = pricing.gstInclusive(grand);
+        BigDecimal credits = displaySubtotal.subtract(storeSubtotal).max(BigDecimal.ZERO);
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("currency", currency);
-        m.put("itemsSubtotal", subtotal);
+        m.put("itemsSubtotal", displaySubtotal);
         m.put("deliveryFee", deliveryFee);
+        m.put("platformFee", platformFee);
         m.put("gstInclusive", gst);     // component already inside grandTotal, not added on top
         m.put("grandTotal", grand);
+        m.put("creditsEarned", credits);
         return m;
     }
 
@@ -184,8 +217,11 @@ public class CartService {
         String currency = (String) cart.get("currency");
         UUID storeId = (UUID) cart.get("store_id");
 
+        // unitPrice is the CHARGED (display) price. The store's own price stays server-side —
+        // COALESCE only falls back to it for carts resolved before the display snapshot existed.
         List<Map<String, Object>> lines = jdbc.query(
-            "SELECT cl.id, cl.store_product_id, cl.canonical_product_id, cl.qty, cl.unit_price_amount, "
+            "SELECT cl.id, cl.store_product_id, cl.canonical_product_id, cl.qty, "
+            + "COALESCE(cl.display_unit_price, cl.unit_price_amount) AS charged_price, "
             + "cl.is_substitution, sp.raw_name, sp.stock FROM cart_line cl "
             + "JOIN store_product sp ON sp.id = cl.store_product_id WHERE cl.cart_id = ? ORDER BY cl.created_at",
             (rs, i) -> {
@@ -196,8 +232,8 @@ public class CartService {
                 m.put("storeProductId", rs.getObject("store_product_id").toString());
                 m.put("name", rs.getString("raw_name"));
                 m.put("qty", qty);
-                m.put("unitPrice", rs.getBigDecimal("unit_price_amount"));
-                m.put("lineTotal", rs.getBigDecimal("unit_price_amount").multiply(BigDecimal.valueOf(qty)));
+                m.put("unitPrice", rs.getBigDecimal("charged_price"));
+                m.put("lineTotal", rs.getBigDecimal("charged_price").multiply(BigDecimal.valueOf(qty)));
                 m.put("isSubstitution", rs.getBoolean("is_substitution"));
                 m.put("available", stock >= qty);
                 m.put("stock", stock);

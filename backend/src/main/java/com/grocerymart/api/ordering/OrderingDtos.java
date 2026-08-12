@@ -19,13 +19,18 @@ public final class OrderingDtos {
         @Positive int quantity,
         String substituteStoreProductId) {}
 
-    /** Resolve a compared basket into a single-store cart bound to the chosen winning store.
+    /** Resolve the customer's selection into a cart bound to the store they are shopping.
      *  {@code @Valid} cascades validation into each {@link ResolveItem} so a non-positive quantity
-     *  is rejected with 400 at the controller (instead of reaching the service / DB). */
+     *  is rejected with 400 at the controller (instead of reaching the service / DB).
+     *
+     *  <p>lat/lng are optional but should always be sent: they anchor the display-price radius, so
+     *  without them lines fall back to the store's own price and the customer earns no credits. */
     public record ResolveCartRequest(
         @NotBlank String storeId,
         @NotBlank @Pattern(regexp = com.grocerymart.api.payments.PaymentDtos.SUPPORTED_CURRENCY,
                            message = "unsupported currency") String currency,
+        Double lat,
+        Double lng,
         @NotEmpty @Valid List<ResolveItem> items) {}
 
     public record UpdateLineRequest(@Positive int quantity) {}

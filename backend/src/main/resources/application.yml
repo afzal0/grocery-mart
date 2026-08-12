@@ -35,6 +35,9 @@ grocerymart:
     delivery-per-km: 1.20      # added per km between store and delivery address (PostGIS)
     gst-rate: 0.10             # AU GST, tax-INCLUSIVE (component of grand total, not added on top)
     max-service-km: 25         # addresses beyond this from the store are out of delivery range
+    platform-fee: 2.00         # flat service & platform fee per order, its own checkout line
+    display-radius-km: 10      # customers see stores within this radius; the displayed price for
+                               # an item is the highest price across that set (never a lower one)
   delivery:
     location-retention-hours: 24    # driver GPS fixes purged this long after a delivery completes
     slot-ready-lead-minutes: 60     # a scheduled order enters the dispatch queue this early

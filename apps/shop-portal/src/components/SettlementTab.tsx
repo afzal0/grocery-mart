@@ -7,6 +7,7 @@ import {
 } from '../lib/api';
 import { Loading, ErrorState, EmptyState, StatusBadge } from './ui';
 import { money, fmtDate } from '../lib/format';
+import { Icon } from './Icon';
 
 export function SettlementTab() {
   return (
@@ -42,14 +43,14 @@ function SettlementPanel() {
   const currency = data?.entries[0]?.currency ?? 'AUD';
 
   return (
-    <section className="gm-glass gm-panel">
-      <div className="gm-panel-head">
-        <div>
-          <h2>Settlement</h2>
-          <p>Gross sales, platform commission, GST and what you're owed.</p>
-        </div>
-        <button className="gm-btn gm-btn-ghost gm-btn-sm" type="button" onClick={() => void load()}>
-          Refresh
+    <section className="gm-card">
+      <h2 className="gm-card-title">Settlement</h2>
+      <p className="gm-card-sub">
+        Sales at your prices, refunds, and what the platform owes you.
+      </p>
+      <div className="gm-row-actions" style={{ marginBottom: 'var(--gm-s4)' }}>
+        <button className="gm-btn-ghost gm-btn-sm" type="button" onClick={() => void load()}>
+          <Icon name="refresh" size={15} /> Refresh
         </button>
       </div>
       {loading ? (
@@ -60,30 +61,26 @@ function SettlementPanel() {
         <EmptyState>No settlement data.</EmptyState>
       ) : (
         <>
-          <div className="gm-kv">
-            <div className="gm-kv-item">
-              <div className="label">Gross</div>
-              <div className="value">{money(data.gross, currency)}</div>
+          <div className="gm-metrics">
+            <div className="gm-metric">
+              <div className="gm-metric-label">Sales</div>
+              <div className="gm-metric-value">{money(data.sales, currency)}</div>
             </div>
-            <div className="gm-kv-item">
-              <div className="label">Commission</div>
-              <div className="value">{money(data.commission, currency)}</div>
+            <div className="gm-metric">
+              <div className="gm-metric-label">Refunds</div>
+              <div className="gm-metric-value">{money(data.refunds, currency)}</div>
             </div>
-            <div className="gm-kv-item">
-              <div className="label">Refunds</div>
-              <div className="value">{money(data.refunds, currency)}</div>
+            <div className="gm-metric">
+              <div className="gm-metric-label">Net</div>
+              <div className="gm-metric-value">{money(data.net, currency)}</div>
             </div>
-            <div className="gm-kv-item">
-              <div className="label">Net</div>
-              <div className="value">{money(data.net, currency)}</div>
+            <div className="gm-metric">
+              <div className="gm-metric-label">Paid out</div>
+              <div className="gm-metric-value">{money(data.paidOut, currency)}</div>
             </div>
-            <div className="gm-kv-item">
-              <div className="label">Paid out</div>
-              <div className="value">{money(data.paidOut, currency)}</div>
-            </div>
-            <div className="gm-kv-item">
-              <div className="label">Net owed</div>
-              <div className="value accent">{money(data.netOwed, currency)}</div>
+            <div className="gm-metric">
+              <div className="gm-metric-label">Net owed</div>
+              <div className="gm-metric-value accent">{money(data.netOwed, currency)}</div>
             </div>
           </div>
           {data.entries.length === 0 ? (
@@ -95,9 +92,8 @@ function SettlementPanel() {
                   <tr>
                     <th>Order</th>
                     <th>Type</th>
-                    <th className="num">Amount</th>
+                    <th className="num">Your earnings</th>
                     <th className="num">GST</th>
-                    <th className="num">Commission</th>
                     <th>When</th>
                   </tr>
                 </thead>
@@ -112,7 +108,6 @@ function SettlementPanel() {
                       </td>
                       <td className="num">{money(e.amount, e.currency)}</td>
                       <td className="num">{money(e.gst, e.currency)}</td>
-                      <td className="num">{money(e.commission, e.currency)}</td>
                       <td>{fmtDate(e.createdAt)}</td>
                     </tr>
                   ))}
@@ -148,14 +143,12 @@ function PayoutsPanel() {
   }, []);
 
   return (
-    <section className="gm-glass gm-panel">
-      <div className="gm-panel-head">
-        <div>
-          <h2>Payouts</h2>
-          <p>Transfers from the platform to your account.</p>
-        </div>
-        <button className="gm-btn gm-btn-ghost gm-btn-sm" type="button" onClick={() => void load()}>
-          Refresh
+    <section className="gm-card">
+      <h2 className="gm-card-title">Payouts</h2>
+      <p className="gm-card-sub">Transfers from the platform to your account.</p>
+      <div className="gm-row-actions" style={{ marginBottom: 'var(--gm-s4)' }}>
+        <button className="gm-btn-ghost gm-btn-sm" type="button" onClick={() => void load()}>
+          <Icon name="refresh" size={15} /> Refresh
         </button>
       </div>
       {loading ? (

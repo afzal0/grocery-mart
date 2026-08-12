@@ -11,6 +11,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.grocerymart.api.audit.AuditService;
+import com.grocerymart.api.common.PricingService;
 import com.grocerymart.api.delivery.DeliveryService;
 import com.grocerymart.api.identity.ApiException;
 import com.grocerymart.api.notifications.OutboxService;
@@ -21,6 +23,11 @@ import com.grocerymart.api.ordering.OrderingDtos.CheckoutRequest;
  * prices at placement, and creates exactly one order aggregate (no order_group) — idempotent on
  * the order:checkout key. Payment moves the order to paid via the wallet/card services. Also
  * creates the delivery aggregate + books any scheduled slot (Epic 6).
+ *
+ * <p>Each line is snapshotted TWICE: {@code unit_price_amount} is what the customer was charged
+ * (the normalized display price) and {@code store_unit_price_amount} is what the vendor is settled
+ * at. Their difference is the platform margin and the customer's loyalty credit, so both numbers
+ * must survive for settlement — order rows are never purged.
  */
 @Service
 public class OrderService {
@@ -29,12 +36,17 @@ public class OrderService {
     private final CartService carts;
     private final DeliveryService delivery;
     private final OutboxService outbox;
+    private final PricingService pricing;
+    private final AuditService audit;
 
-    public OrderService(JdbcTemplate jdbc, CartService carts, DeliveryService delivery, OutboxService outbox) {
+    public OrderService(JdbcTemplate jdbc, CartService carts, DeliveryService delivery, OutboxService outbox,
+                        PricingService pricing, AuditService audit) {
         this.jdbc = jdbc;
         this.carts = carts;
         this.delivery = delivery;
         this.outbox = outbox;
+        this.pricing = pricing;
+        this.audit = audit;
     }
 
     @Transactional
@@ -95,36 +107,77 @@ public class OrderService {
             }, cartId);
         if (lines.isEmpty()) throw ApiException.unprocessable("cart is empty");
 
+        // Recompute display prices at placement, anchored at the delivery point — same reason the
+        // store price is re-read here rather than trusted from the cart.
+        List<UUID> canonicalIds = lines.stream()
+            .map(l -> (UUID) l.get("canonical_product_id")).filter(java.util.Objects::nonNull).toList();
+        Map<UUID, BigDecimal> maxima = pricing.displayPrices(canonicalIds, req.lat(), req.lng());
+
         List<String> shortfalls = new ArrayList<>();
-        BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal displaySubtotal = BigDecimal.ZERO;
+        BigDecimal storeSubtotal = BigDecimal.ZERO;
+        List<Map<String, Object>> priceTrail = new ArrayList<>();
         for (Map<String, Object> l : lines) {
             if (!currency.equalsIgnoreCase((String) l.get("currency"))) {
                 throw ApiException.unprocessable("cross-currency line rejected");   // AR-12
             }
             int qty = (Integer) l.get("qty");
             if ((Integer) l.get("stock") < qty) shortfalls.add((String) l.get("name"));
-            subtotal = subtotal.add(((BigDecimal) l.get("price")).multiply(BigDecimal.valueOf(qty)));
+            BigDecimal storePrice = (BigDecimal) l.get("price");
+            BigDecimal displayPrice = pricing.displayPrice(storePrice, maxima.get((UUID) l.get("canonical_product_id")));
+            l.put("displayPrice", displayPrice);
+            storeSubtotal = storeSubtotal.add(storePrice.multiply(BigDecimal.valueOf(qty)));
+            displaySubtotal = displaySubtotal.add(displayPrice.multiply(BigDecimal.valueOf(qty)));
+
+            Map<String, Object> trail = new LinkedHashMap<>();
+            trail.put("canonicalProductId", String.valueOf(l.get("canonical_product_id")));
+            trail.put("name", l.get("name"));
+            trail.put("qty", qty);
+            trail.put("storeUnitPrice", storePrice);
+            trail.put("displayUnitPrice", displayPrice);
+            trail.put("diff", displayPrice.subtract(storePrice));
+            priceTrail.add(trail);
         }
         if (!shortfalls.isEmpty()) {
             throw ApiException.unprocessable("insufficient stock for: " + String.join(", ", shortfalls));
         }
         delivery.assertInRange(storeId, req.lat(), req.lng());   // Story 6.2: block out-of-range addresses
 
-        Map<String, Object> totals = carts.totals(storeId, subtotal, currency, req.lat(), req.lng());
+        Map<String, Object> totals = carts.totals(storeId, displaySubtotal, storeSubtotal, currency,
+            req.lat(), req.lng());
+        BigDecimal credits = (BigDecimal) totals.get("creditsEarned");
         UUID orderId = jdbc.queryForObject(
-            "INSERT INTO orders (customer_id, store_id, currency, items_subtotal, delivery_fee, gst_amount, "
-            + "grand_total, delivery_address, delivery_lat, delivery_lng, idempotency_key) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            "INSERT INTO orders (customer_id, store_id, currency, items_subtotal, store_items_subtotal, "
+            + "delivery_fee, platform_fee, gst_amount, grand_total, loyalty_credits, "
+            + "delivery_address, delivery_lat, delivery_lng, idempotency_key) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
             UUID.class, customerId, storeId, currency,
-            totals.get("itemsSubtotal"), totals.get("deliveryFee"), totals.get("gstInclusive"),
-            totals.get("grandTotal"), req.deliveryAddress(), req.lat(), req.lng(), idempotencyKey);
+            totals.get("itemsSubtotal"), storeSubtotal.setScale(2, java.math.RoundingMode.HALF_UP),
+            totals.get("deliveryFee"), totals.get("platformFee"), totals.get("gstInclusive"),
+            totals.get("grandTotal"), credits,
+            req.deliveryAddress(), req.lat(), req.lng(), idempotencyKey);
 
         for (Map<String, Object> l : lines) {
             jdbc.update("INSERT INTO order_item (order_id, store_product_id, canonical_product_id, "
-                + "name_snapshot, qty, unit_price_amount, currency) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                + "name_snapshot, qty, unit_price_amount, store_unit_price_amount, currency) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 orderId, l.get("store_product_id"), l.get("canonical_product_id"),
-                l.get("name"), l.get("qty"), l.get("price"), currency);
+                l.get("name"), l.get("qty"), l.get("displayPrice"), l.get("price"), currency);
         }
+
+        // Permanent, tamper-evident record of every price adjustment behind this order. Uses the
+        // plain log(...) so it shares the checkout transaction: a rolled-back order leaves no trail.
+        Map<String, Object> pricingSummary = new LinkedHashMap<>();
+        pricingSummary.put("lines", priceTrail);
+        pricingSummary.put("storeItemsSubtotal", storeSubtotal.setScale(2, java.math.RoundingMode.HALF_UP));
+        pricingSummary.put("displayItemsSubtotal", totals.get("itemsSubtotal"));
+        pricingSummary.put("deliveryFee", totals.get("deliveryFee"));
+        pricingSummary.put("platformFee", totals.get("platformFee"));
+        pricingSummary.put("margin", credits);
+        pricingSummary.put("creditsEarned", credits);
+        pricingSummary.put("grandTotal", totals.get("grandTotal"));
+        audit.log(customerId, "order.pricing.applied", "order", orderId.toString(),
+            null, pricingSummary, "success");
 
         // Create the delivery aggregate (+ book a scheduled slot atomically, Story 6.1).
         delivery.createForOrder(orderId, req.timing(), req.slotId() == null ? null : UUID.fromString(req.slotId()));
@@ -160,8 +213,11 @@ public class OrderService {
 
     Map<String, Object> orderView(UUID customerId, UUID orderId) {
         Map<String, Object> o = jdbc.query(
+            // store_items_subtotal is deliberately NOT selected — this view is rendered in the
+            // customer app, and the vendor's price is what the display price exists to conceal.
             "SELECT id, customer_id, store_id, currency, payment_status, status, items_subtotal, "
-            + "delivery_fee, gst_amount, grand_total, delivery_address, payment_method, created_at "
+            + "delivery_fee, platform_fee, gst_amount, grand_total, loyalty_credits, "
+            + "delivery_address, payment_method, created_at "
             + "FROM orders WHERE id = ?",
             rs -> {
                 if (!rs.next()) return null;
@@ -174,8 +230,10 @@ public class OrderService {
                 m.put("status", rs.getString("status"));
                 m.put("itemsSubtotal", rs.getBigDecimal("items_subtotal"));
                 m.put("deliveryFee", rs.getBigDecimal("delivery_fee"));
+                m.put("platformFee", rs.getBigDecimal("platform_fee"));
                 m.put("gstInclusive", rs.getBigDecimal("gst_amount"));
                 m.put("grandTotal", rs.getBigDecimal("grand_total"));
+                m.put("creditsEarned", rs.getBigDecimal("loyalty_credits"));
                 m.put("deliveryAddress", rs.getString("delivery_address"));
                 m.put("paymentMethod", rs.getString("payment_method"));
                 m.put("createdAt", rs.getTimestamp("created_at").toInstant().toString());

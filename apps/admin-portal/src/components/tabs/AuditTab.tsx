@@ -3,6 +3,63 @@ import { listAudit, type AuditEntry } from '../../lib/api';
 import { useAsync } from '../../lib/useAsync';
 import { Loading, ErrorState, EmptyState, StatusBadge, dateTime } from '../ui';
 
+/** One row, with the jsonb payload revealed on demand — pricing entries carry the full
+ *  per-line breakdown, which is far too wide to sit inline in the table. */
+function AuditRow({ entry }: { entry: AuditEntry }) {
+  const [open, setOpen] = useState(false);
+  const payload = entry.afterSummary ?? entry.beforeSummary;
+
+  let pretty = payload;
+  if (payload) {
+    try {
+      pretty = JSON.stringify(JSON.parse(payload), null, 2);
+    } catch {
+      pretty = payload;   // not JSON — show it raw rather than dropping it
+    }
+  }
+
+  return (
+    <>
+      <tr>
+        <td className="muted">{dateTime(entry.createdAt)}</td>
+        <td className="gm-mono">{entry.actorId ?? '—'}</td>
+        <td>{entry.action}</td>
+        <td className="muted">
+          {entry.targetType ? `${entry.targetType}${entry.targetId ? ` · ${entry.targetId}` : ''}` : '—'}
+        </td>
+        <td><StatusBadge status={entry.outcome} /></td>
+        <td className="gm-mono muted">{entry.sourceIp ?? '—'}</td>
+        <td>
+          {pretty ? (
+            <button
+              type="button"
+              className="gm-link-btn"
+              aria-expanded={open}
+              onClick={() => setOpen((v) => !v)}
+            >
+              {open ? 'Hide' : 'Show'}
+            </button>
+          ) : (
+            <span className="muted">—</span>
+          )}
+        </td>
+      </tr>
+      {open && pretty && (
+        <tr>
+          <td colSpan={7} style={{ background: 'var(--gm-surface-sunk)' }}>
+            <pre
+              className="gm-mono"
+              style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '12px' }}
+            >
+              {pretty}
+            </pre>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
 export function AuditTab() {
   // draft filter (form) vs applied filter (drives the request)
   const [actor, setActor] = useState('');
@@ -87,20 +144,12 @@ export function AuditTab() {
                 <th>Target</th>
                 <th>Outcome</th>
                 <th>Source IP</th>
+                <th>Detail</th>
               </tr>
             </thead>
             <tbody>
               {data.map((e) => (
-                <tr key={e.id}>
-                  <td className="muted">{dateTime(e.createdAt)}</td>
-                  <td className="gm-mono">{e.actorId ?? '—'}</td>
-                  <td>{e.action}</td>
-                  <td className="muted">
-                    {e.targetType ? `${e.targetType}${e.targetId ? ` · ${e.targetId}` : ''}` : '—'}
-                  </td>
-                  <td><StatusBadge status={e.outcome} /></td>
-                  <td className="gm-mono muted">{e.sourceIp ?? '—'}</td>
-                </tr>
+                <AuditRow key={e.id} entry={e} />
               ))}
             </tbody>
           </table>

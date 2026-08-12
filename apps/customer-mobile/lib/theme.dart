@@ -1,52 +1,72 @@
+import 'dart:ui' show FontFeature;
+
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Sydney CBD fallback coordinates (used when auto-location is unavailable).
 const double kSydneyLat = -33.8688;
 const double kSydneyLng = 151.2093;
 
-/// Grocery-Mart customer design system — "Spice Market": a warm, light, food-forward
-/// look inspired by modern delivery apps. Cream paper, saffron-coral primary, fresh-green
-/// deal accents, an editorial serif (Fraunces) paired with a friendly grotesque (Plus Jakarta Sans).
-/// Field names are kept stable so every screen inherits the new palette automatically.
+/// Grocery-Mart customer design system.
+///
+/// Light-first and Apple-flavoured, mirroring `packages/design-tokens/gm-light.css` so the
+/// customer app and the two web portals read as one product: near-white ground, white
+/// surfaces, hairline borders, soft radii, a single restrained green accent.
+///
+/// Typography is the PLATFORM font (SF Pro on iOS, Roboto on Android) rather than a webfont
+/// pair — that is what an Apple-native surface uses, and it removes a network fetch from
+/// first paint. Field names are unchanged so every screen inherits the palette for free.
 class Gm {
   Gm._();
 
   // Surfaces
-  static const Color bg0 = Color(0xFFFFF6EC); // warm cream paper (scaffold)
+  static const Color bg0 = Color(0xFFF7F8F8); // page ground
   static const Color bg1 = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceSunk = Color(0xFFFAFBFB); // inset rows, sheet grabbers
 
-  // Ink
-  static const Color text = Color(0xFF221A12); // warm near-black
-  static const Color textDim = Color(0xFF8C8175);
+  // Ink — neutrals carry a slight green bias so they sit with the accent, not under it
+  static const Color text = Color(0xFF0F1A17);
+  static const Color textDim = Color(0xFF5B6B66);
+  static const Color textFaint = Color(0xFF8A9793);
 
   // Brand
-  static const Color accent = Color(0xFFF4511E); // saffron-coral primary
-  static const Color accent2 = Color(0xFFFF8A3D); // warm amber (gradient partner)
-  static const Color fresh = Color(0xFF0FA968); // deals / cheapest / free delivery
-  static const Color star = Color(0xFFF6A609); // ratings
-  static const Color danger = Color(0xFFE5484D);
-  static const Color warn = Color(0xFFF6A609);
+  static const Color accent = Color(0xFF059669); // grocery green, matches the shop portal
+  static const Color accent2 = Color(0xFF10B981); // lighter partner for gradients
+  static const Color fresh = Color(0xFF047857); // credits, in-stock, positive money
+  static const Color star = Color(0xFFB45309); // ratings
+  static const Color danger = Color(0xFFB91C1C);
+  static const Color warn = Color(0xFFB45309);
   static const Color onPrimary = Color(0xFFFFFFFF);
 
-  static const Color line = Color(0xFFF0E6D8); // hairline borders
+  static const Color line = Color(0x170F1A17); // ~9% hairline
+  static const Color lineSoft = Color(0x0D0F1A17); // ~5% hairline
 
-  static const double radius = 20;
-  static const double radiusSm = 12;
+  static const double radius = 12;
+  static const double radiusSm = 8;
 
-  // Back-compat aliases used by existing screens (now light surfaces)
+  // Back-compat aliases still referenced by some screens.
   static Color get glassFill => surface;
-  static Color get glassFillStrong => const Color(0xFFFFFBF5);
+  static Color get glassFillStrong => surfaceSunk;
   static Color get glassBorder => line;
 
   static List<Color> get heat => const [accent, accent2];
 
-  /// Editorial display style (store names, section heads, the wordmark).
+  /// Display style for titles and section heads. Platform font, tightened tracking at
+  /// larger sizes the way SF Pro Display does.
   static TextStyle display(double size,
-          {FontWeight weight = FontWeight.w700, Color color = text, double? height, double spacing = -0.3}) =>
-      GoogleFonts.fraunces(
+          {FontWeight weight = FontWeight.w600, Color color = text, double? height, double spacing = -0.4}) =>
+      TextStyle(
           fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: spacing);
+
+  /// Tabular figures — prices and totals must not jitter as digits change.
+  static TextStyle money(double size, {FontWeight weight = FontWeight.w600, Color color = text}) =>
+      TextStyle(
+        fontSize: size,
+        fontWeight: weight,
+        color: color,
+        letterSpacing: -0.2,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
 
   static ThemeData themeData() {
     final scheme = ColorScheme.fromSeed(
@@ -56,8 +76,7 @@ class Gm {
     ).copyWith(primary: accent, secondary: accent2, surface: surface);
 
     final base = ThemeData(useMaterial3: true, brightness: Brightness.light, colorScheme: scheme);
-    final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme)
-        .apply(bodyColor: text, displayColor: text);
+    final textTheme = base.textTheme.apply(bodyColor: text, displayColor: text);
 
     return base.copyWith(
       scaffoldBackgroundColor: bg0,
@@ -65,7 +84,7 @@ class Gm {
       splashFactory: InkSparkle.splashFactory,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFFAF3E9),
+        fillColor: surfaceSunk,
         hintStyle: const TextStyle(color: textDim),
         labelStyle: const TextStyle(color: textDim),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
@@ -75,7 +94,7 @@ class Gm {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSm),
-          borderSide: const BorderSide(color: accent, width: 1.6),
+          borderSide: const BorderSide(color: accent, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSm),
@@ -83,12 +102,12 @@ class Gm {
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSm),
-          borderSide: const BorderSide(color: danger, width: 1.6),
+          borderSide: const BorderSide(color: danger, width: 1.5),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: text,
-        contentTextStyle: GoogleFonts.plusJakartaSans(color: Colors.white),
+        contentTextStyle: const TextStyle(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusSm)),
         behavior: SnackBarBehavior.floating,
       ),
@@ -115,14 +134,16 @@ class Gm {
 
   /// Deterministic warm gradient for a store/product "photo" header.
   static List<Color> imageGradient(String seed) {
+    // Muted, low-chroma tints: these sit behind product names as placeholder "photography",
+    // so they must never out-shout the price or the add button.
     const palettes = [
-      [Color(0xFFFF8A3D), Color(0xFFF4511E)],
-      [Color(0xFFFFC14D), Color(0xFFFF8A3D)],
-      [Color(0xFF34D399), Color(0xFF0FA968)],
-      [Color(0xFFFB7185), Color(0xFFE11D48)],
-      [Color(0xFFA78BFA), Color(0xFF7C3AED)],
-      [Color(0xFF38BDF8), Color(0xFF0E7490)],
-      [Color(0xFFFCD34D), Color(0xFFF59E0B)],
+      [Color(0xFFE8F1EE), Color(0xFFD7E8E1)],
+      [Color(0xFFEDEFE9), Color(0xFFDFE4DA)],
+      [Color(0xFFEAF0F3), Color(0xFFD9E4EA)],
+      [Color(0xFFF2EDE8), Color(0xFFE6DCD2)],
+      [Color(0xFFECEEF4), Color(0xFFDCE0EB)],
+      [Color(0xFFEFEDF2), Color(0xFFE1DDE8)],
+      [Color(0xFFE9F0EA), Color(0xFFD8E5DA)],
     ];
     var h = 0;
     for (final ch in seed.codeUnits) {
@@ -255,8 +276,9 @@ class GmButton extends StatelessWidget {
                   ],
                   if (!busy)
                     Text(label,
-                        style: GoogleFonts.plusJakartaSans(
-                            color: Gm.onPrimary, fontWeight: FontWeight.w800, fontSize: 15)),
+                        style: const TextStyle(
+                            color: Gm.onPrimary, fontWeight: FontWeight.w600, fontSize: 15,
+                            letterSpacing: -0.1)),
                 ],
               ),
             ),
@@ -411,17 +433,43 @@ class GmError extends StatelessWidget {
 }
 
 class GmEmpty extends StatelessWidget {
-  const GmEmpty({super.key, required this.message, this.icon = Icons.inbox_outlined});
+  const GmEmpty({
+    super.key,
+    required this.message,
+    this.title,
+    this.action,
+    this.icon = Icons.inbox_outlined,
+  });
+
   final String message;
+
+  /// Optional headline. An empty state that only explains the absence leaves the user
+  /// with nothing to do, so [action] can offer the way out.
+  final String? title;
+  final Widget? action;
   final IconData icon;
+
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: Gm.textDim, size: 40),
-        const SizedBox(height: 12),
-        Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Gm.textDim)),
-      ]),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: Gm.textFaint, size: 36),
+          const SizedBox(height: 14),
+          if (title != null) ...[
+            Text(title!, textAlign: TextAlign.center, style: Gm.display(16)),
+            const SizedBox(height: 6),
+          ],
+          Text(message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Gm.textDim, fontSize: 14, height: 1.45)),
+          if (action != null) ...[
+            const SizedBox(height: 18),
+            action!,
+          ],
+        ]),
+      ),
     );
   }
 }

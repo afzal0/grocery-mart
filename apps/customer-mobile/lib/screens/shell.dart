@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import 'account_screen.dart';
-import 'basket_screen.dart';
-import 'discover_screen.dart';
+import 'home_screen.dart';
 import 'orders_screen.dart';
+import 'rewards_screen.dart';
 
-/// Bottom-navigation main shell with 5 destinations.
+/// Bottom-navigation shell: Home / Rewards / Orders / Account.
 class MainShell extends StatefulWidget {
   const MainShell({super.key, required this.onSignOut});
   final VoidCallback onSignOut;
@@ -19,12 +19,15 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0;
 
-  final GlobalKey<OrdersScreenState> _ordersKey =
-      GlobalKey<OrdersScreenState>();
+  final GlobalKey<OrdersScreenState> _ordersKey = GlobalKey<OrdersScreenState>();
+  final GlobalKey<RewardsScreenState> _rewardsKey = GlobalKey<RewardsScreenState>();
 
   void _goToOrders() {
     setState(() => _index = 2);
     _ordersKey.currentState?.refresh();
+    // A placed order changes the credit balance, so refresh Rewards too rather than
+    // letting the tab show a stale number until the user pulls to refresh.
+    _rewardsKey.currentState?.refresh();
   }
 
   Future<void> _signOut() async {
@@ -35,8 +38,8 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      DiscoverScreen(onCheckedOut: _goToOrders),
-      BasketScreen(onCheckedOut: _goToOrders),
+      HomeScreen(onCheckedOut: _goToOrders),
+      RewardsScreen(key: _rewardsKey),
       OrdersScreen(key: _ordersKey),
       AccountScreen(onSignOut: _signOut),
     ];
@@ -60,7 +63,7 @@ class _MainShellState extends State<MainShell> {
                 final selected = states.contains(WidgetState.selected);
                 return TextStyle(
                   fontSize: 11.5,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   color: selected ? Gm.accent : Gm.textDim,
                 );
               }),
@@ -76,17 +79,18 @@ class _MainShellState extends State<MainShell> {
               surfaceTintColor: Colors.transparent,
               onDestinationSelected: (i) {
                 setState(() => _index = i);
+                if (i == 1) _rewardsKey.currentState?.refresh();
                 if (i == 2) _ordersKey.currentState?.refresh();
               },
               destinations: const [
                 NavigationDestination(
-                    icon: Icon(Icons.explore_outlined),
-                    selectedIcon: Icon(Icons.explore),
-                    label: 'Discover'),
+                    icon: Icon(Icons.storefront_outlined),
+                    selectedIcon: Icon(Icons.storefront),
+                    label: 'Shop'),
                 NavigationDestination(
-                    icon: Icon(Icons.compare_arrows_outlined),
-                    selectedIcon: Icon(Icons.compare_arrows),
-                    label: 'Basket'),
+                    icon: Icon(Icons.card_giftcard_outlined),
+                    selectedIcon: Icon(Icons.card_giftcard),
+                    label: 'Rewards'),
                 NavigationDestination(
                     icon: Icon(Icons.receipt_long_outlined),
                     selectedIcon: Icon(Icons.receipt_long),

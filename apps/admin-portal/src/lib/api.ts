@@ -235,7 +235,14 @@ export type PerShopReconciliation = {
   shopId: string;
   shopName: string;
   gross: number;
+  /** Total platform take = price-normalization margin + flat service fees. */
   commission: number;
+  /** Flat per-order service fee component of the commission. */
+  serviceFees: number;
+  /** Price-normalization component: charged prices minus vendor prices. */
+  pricingMargin: number;
+  /** What the vendor's own prices earn them, before refunds. */
+  vendorPayable: number;
   refunds: number;
   net: number;
   paidOut: number;
@@ -292,6 +299,10 @@ export type AuditEntry = {
   outcome: string;
   sourceIp: string | null;
   createdAt: string;
+  /** Raw jsonb payloads. For `order.pricing.applied` this holds the per-line vendor price,
+   *  charged price and difference — the permanent record behind every settlement figure. */
+  beforeSummary: string | null;
+  afterSummary: string | null;
 };
 
 export type AuditFilter = { actor?: string; action?: string; limit?: number };

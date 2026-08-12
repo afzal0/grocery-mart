@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../theme.dart';
+import '../widgets/totals_card.dart';
 import 'order_detail_screen.dart';
 
 class CartScreen extends StatefulWidget {
@@ -26,8 +27,9 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final _api = ApiClient.instance;
-  final _address = TextEditingController(
-      text: '123 George St, Sydney NSW 2000');
+  // Deliberately empty: a pre-filled demo address is the kind of default that gets an order
+  // delivered to the wrong place.
+  final _address = TextEditingController();
 
   late Map<String, dynamic> _cart;
   Map<String, dynamic>? _total;
@@ -250,53 +252,28 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _totalsCard(dynamic subtotal) {
     final t = _total;
-    return GmGlass(
-      child: Column(
-        children: [
-          _totalRow('Items subtotal',
-              GmUi.money((t?['itemsSubtotal'] ?? subtotal) as num?, _currency)),
-          if (t != null) ...[
-            const SizedBox(height: 6),
-            _totalRow('Delivery fee',
-                GmUi.money(t['deliveryFee'] as num?, _currency)),
-            const SizedBox(height: 6),
-            _totalRow('GST (incl.)',
-                GmUi.money(t['gstInclusive'] as num?, _currency)),
-            const Divider(color: Color(0x22FFFFFF), height: 22),
-            _totalRow(
-              'Grand total',
-              GmUi.money(t['grandTotal'] as num?, _currency),
-              bold: true,
+    if (t == null) {
+      return GmGlass(
+        child: Row(
+          children: [
+            Expanded(
+              child: Text('Items subtotal',
+                  style: const TextStyle(color: Gm.textDim, fontSize: 14)),
             ),
-          ] else if (_loadingTotal) ...[
-            const SizedBox(height: 10),
-            const SizedBox(
-                height: 16,
-                width: 16,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Gm.accent)),
+            if (_loadingTotal)
+              const SizedBox(
+                  height: 16, width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Gm.accent))
+            else
+              Text(GmUi.money(subtotal as num?, _currency), style: Gm.money(14)),
           ],
-        ],
-      ),
-    );
+        ),
+      );
+    }
+    // Shared with the order detail screen so the fee and credit rows can never disagree.
+    return TotalsCard(totals: t);
   }
 
-  Widget _totalRow(String label, String value, {bool bold = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label,
-            style: TextStyle(
-                color: bold ? Gm.text : Gm.textDim,
-                fontWeight: bold ? FontWeight.w700 : FontWeight.w400)),
-        Text(value,
-            style: TextStyle(
-                color: Gm.text,
-                fontSize: bold ? 18 : 14,
-                fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
-      ],
-    );
-  }
 
   Widget _deliveryCard() {
     return GmGlass(
@@ -314,6 +291,7 @@ class _CartScreenState extends State<CartScreen> {
             maxLines: 2,
             decoration: const InputDecoration(
                 labelText: 'Delivery address',
+                hintText: 'Street, suburb and postcode',
                 prefixIcon: Icon(Icons.location_on_outlined, color: Gm.textDim)),
             style: const TextStyle(color: Gm.text),
           ),
@@ -392,7 +370,7 @@ class _CartScreenState extends State<CartScreen> {
           decoration: BoxDecoration(
             color: selected
                 ? Gm.accent.withValues(alpha: 0.18)
-                : Colors.white.withValues(alpha: 0.04),
+                : Gm.surfaceSunk,
             borderRadius: BorderRadius.circular(Gm.radiusSm),
             border: Border.all(
                 color: selected ? Gm.accent : Gm.glassBorder),
@@ -472,7 +450,7 @@ class _LineRow extends StatelessWidget {
           children: [
             Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: Gm.surfaceSunk,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(color: Gm.glassBorder),
               ),

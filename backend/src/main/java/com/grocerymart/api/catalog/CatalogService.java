@@ -17,8 +17,9 @@ import com.grocerymart.api.identity.ApiException;
 
 /**
  * Epic 3 core: store onboarding, free-create store products, the exact/fuzzy matching
- * pipeline to a shared canonical catalog, the human merge queue, and the cross-store
- * price comparison (the wedge). Matching bands (R12/R17): >= 0.95 auto-link,
+ * pipeline to a shared canonical catalog, and the human merge queue. Canonical linking is
+ * what lets one product be priced consistently across stores, which the display-price engine
+ * in PricingService depends on. Matching bands (R12/R17): >= 0.95 auto-link,
  * 0.75-0.95 -> human candidate, < 0.75 -> new canonical.
  */
 @Service
@@ -162,15 +163,7 @@ public class CatalogService {
         jdbc.update("UPDATE product_match_candidate SET status = 'confirmed' WHERE id = ?", candidateId);
     }
 
-    // ---- The wedge: cross-store comparison + search ----
-
-    public List<Map<String, Object>> offers(UUID canonicalId) {
-        return jdbc.queryForList(
-            "SELECT s.id AS shop_id, s.name AS shop_name, sp.price_amount, sp.currency, sp.stock "
-            + "FROM store_product sp JOIN shop s ON s.id = sp.shop_id "
-            + "WHERE sp.canonical_product_id = ? AND sp.match_status IN ('auto_linked','merged_confirmed') "
-            + "AND s.status = 'active' ORDER BY sp.price_amount ASC", canonicalId);
-    }
+    // ---- Canonical search ----
 
     public List<Map<String, Object>> searchCanonical(String q) {
         String key = normalize(q);

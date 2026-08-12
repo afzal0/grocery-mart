@@ -58,7 +58,8 @@ public class AuditService {
     public List<Map<String, Object>> query(String actor, String action, Integer limit) {
         int lim = Math.min(limit == null ? 100 : limit, 500);
         StringBuilder sql = new StringBuilder(
-            "SELECT id, actor_id, action, target_type, target_id, outcome, source_ip, created_at FROM audit_log WHERE 1=1 ");
+            "SELECT id, actor_id, action, target_type, target_id, outcome, source_ip, created_at, "
+            + "before_summary, after_summary FROM audit_log WHERE 1=1 ");
         java.util.List<Object> args = new java.util.ArrayList<>();
         if (actor != null && !actor.isBlank()) { sql.append("AND actor_id = ? "); args.add(UUID.fromString(actor)); }
         if (action != null && !action.isBlank()) {
@@ -78,6 +79,9 @@ public class AuditService {
             m.put("outcome", rs.getString("outcome"));
             m.put("sourceIp", rs.getString("source_ip"));
             m.put("createdAt", rs.getTimestamp("created_at").toInstant().toString());
+            // Raw jsonb text — the admin UI renders it verbatim, so it is never re-parsed here.
+            m.put("beforeSummary", rs.getString("before_summary"));
+            m.put("afterSummary", rs.getString("after_summary"));
             return m;
         }, args.toArray());
     }
