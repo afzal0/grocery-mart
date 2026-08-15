@@ -11,8 +11,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Customer-facing catalog reads (the wedge): cross-store price comparison for a canonical
- * product, and canonical search. Any authenticated user.
+ * Customer-facing catalog reads: canonical product search. Any authenticated user.
+ *
+ * <p>The per-product cross-store offers endpoint was removed with the single-storefront pivot —
+ * it listed every store's own price with no geographic filter, which is exactly what price
+ * normalization exists to prevent. Customers now see one price per product, from
+ * {@code GET /stores/{shopId}/products}.
  */
 @RestController
 @RequestMapping("/api/v1/catalog")
@@ -22,12 +26,6 @@ public class CatalogController {
 
     public CatalogController(CatalogService catalog) {
         this.catalog = catalog;
-    }
-
-    /** Every active store's price for one canonical product, cheapest first. */
-    @GetMapping("/canonical/{id}/offers")
-    public List<Map<String, Object>> offers(@PathVariable UUID id) {
-        return catalog.offers(id);
     }
 
     @GetMapping("/canonical/search")

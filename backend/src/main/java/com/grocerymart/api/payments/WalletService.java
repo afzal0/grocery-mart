@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.grocerymart.api.delivery.DeliveryService;
 import com.grocerymart.api.identity.ApiException;
+import com.grocerymart.api.loyalty.LoyaltyService;
 
 /**
  * Epic 5 wallet: top-up via Stripe (Story 5.5, credited only by verified webhook) and pay-with-
@@ -25,14 +26,16 @@ public class WalletService {
     private final JdbcTemplate jdbc;
     private final StripeStubProvider stripe;
     private final SettlementService settlement;
+    private final LoyaltyService loyalty;
     private final DeliveryService delivery;
 
     public WalletService(JdbcTemplate jdbc, StripeStubProvider stripe, SettlementService settlement,
-                         DeliveryService delivery) {
+                         DeliveryService delivery, LoyaltyService loyalty) {
         this.jdbc = jdbc;
         this.stripe = stripe;
         this.settlement = settlement;
         this.delivery = delivery;
+        this.loyalty = loyalty;
     }
 
     @Transactional(readOnly = true)
@@ -138,6 +141,7 @@ public class WalletService {
         jdbc.update("UPDATE orders SET payment_status = 'paid', payment_method = 'wallet', updated_at = now() "
             + "WHERE id = ?", orderId);
         settlement.recordCharge(orderId, storeId, total, (BigDecimal) order.get("gst_amount"), currency);
+        loyalty.award(orderId);          // credits the price-normalization spread back to the customer
         delivery.onOrderPaid(orderId);   // immediate deliveries enter the dispatch queue
         return lockableOrder(customerId, orderId);
     }

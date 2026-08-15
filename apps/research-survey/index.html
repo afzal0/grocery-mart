@@ -1,0 +1,1576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="description" content="Field research instrument for Grocery-Mart — shopkeeper interviews with offline capture and CSV export." />
+<meta name="robots" content="noindex, nofollow, noarchive" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230F7A55'/%3E%3Cpath d='M9 11h14M9 16h14M9 21h9' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E" />
+<title>Grocery-Mart — Shopkeeper Field Survey</title>
+</head>
+<body>
+
+<style>
+  :root {
+    --ground:   #F6F8F7;
+    --surface:  #FFFFFF;
+    --raised:   #FFFFFF;
+    --ink:      #0E1A16;
+    --muted:    #5A6B64;
+    --faint:    #8A9A93;
+    --accent:   #0F7A55;
+    --accent-ink: #FFFFFF;
+    --accent-wash: #E7F3ED;
+    --border:   #DCE4E0;
+    --hairline: #EAEFEC;
+    --amber:    #9A6B00;
+    --amber-wash: #FBF3E0;
+    --danger:   #A33726;
+    --danger-wash: #FBEDE9;
+
+    --r-lg: 18px;
+    --r-md: 12px;
+    --r-sm: 8px;
+
+    --font-ui: -apple-system, "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif;
+    --font-display: ui-serif, Georgia, "Times New Roman", serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    --shell: 660px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:   #070B16;
+      --surface:  #111A30;
+      --raised:   #16203A;
+      --ink:      #EAF1FF;
+      --muted:    #9DB0D4;
+      --faint:    #6F82A6;
+      --accent:   #34D399;
+      --accent-ink: #04180F;
+      --accent-wash: rgba(52, 211, 153, 0.12);
+      --border:   rgba(255, 255, 255, 0.14);
+      --hairline: rgba(255, 255, 255, 0.08);
+      --amber:    #FBBF24;
+      --amber-wash: rgba(251, 191, 36, 0.12);
+      --danger:   #F87171;
+      --danger-wash: rgba(248, 113, 113, 0.12);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:   #070B16;
+    --surface:  #111A30;
+    --raised:   #16203A;
+    --ink:      #EAF1FF;
+    --muted:    #9DB0D4;
+    --faint:    #6F82A6;
+    --accent:   #34D399;
+    --accent-ink: #04180F;
+    --accent-wash: rgba(52, 211, 153, 0.12);
+    --border:   rgba(255, 255, 255, 0.14);
+    --hairline: rgba(255, 255, 255, 0.08);
+    --amber:    #FBBF24;
+    --amber-wash: rgba(251, 191, 36, 0.12);
+    --danger:   #F87171;
+    --danger-wash: rgba(248, 113, 113, 0.12);
+  }
+
+  :root[data-theme="light"] {
+    --ground:   #F6F8F7;
+    --surface:  #FFFFFF;
+    --raised:   #FFFFFF;
+    --ink:      #0E1A16;
+    --muted:    #5A6B64;
+    --faint:    #8A9A93;
+    --accent:   #0F7A55;
+    --accent-ink: #FFFFFF;
+    --accent-wash: #E7F3ED;
+    --border:   #DCE4E0;
+    --hairline: #EAEFEC;
+    --amber:    #9A6B00;
+    --amber-wash: #FBF3E0;
+    --danger:   #A33726;
+    --danger-wash: #FBEDE9;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  button, input, select, textarea { font: inherit; color: inherit; }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  /* ---------- shell ---------- */
+
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding-top: env(safe-area-inset-top);
+  }
+  .topbar__inner {
+    max-width: var(--shell); margin: 0 auto;
+    padding: 10px 18px 0;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .topbar__row { display: flex; align-items: center; gap: 12px; }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+    margin: 0; flex: 1; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .wordmark span { color: var(--muted); font-weight: 400; }
+
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 11px; font-variant-numeric: tabular-nums;
+    padding: 5px 10px; border-radius: 999px;
+    background: var(--accent-wash); color: var(--accent);
+    border: 1px solid transparent;
+    white-space: nowrap; appearance: none; cursor: pointer;
+    transition: border-color 140ms ease;
+  }
+  .chip:hover { border-color: var(--accent); }
+
+  /* saved-response rows */
+  .rec {
+    display: flex; gap: 11px; align-items: center;
+    padding: 11px 0; border-bottom: 1px solid var(--hairline);
+  }
+  .rec:last-child { border-bottom: 0; }
+  .rec__main { flex: 1; min-width: 0; }
+  .rec__name {
+    font-size: 14.5px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .rec__meta {
+    font-family: var(--font-mono); font-size: 11.5px;
+    color: var(--muted); margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pill {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px; flex: none;
+  }
+  .pill--ok  { background: var(--accent-wash); color: var(--accent); }
+  .pill--out { background: var(--danger-wash); color: var(--danger); }
+
+  .scroller { max-height: 320px; overflow-y: auto; overflow-x: hidden; margin-top: 10px; }
+
+  .iconbtn {
+    appearance: none; background: none; border: 1px solid var(--border);
+    border-radius: var(--r-sm); width: 34px; height: 34px;
+    display: grid; place-items: center; cursor: pointer;
+    color: var(--muted); flex: none;
+  }
+  .iconbtn:hover { color: var(--ink); border-color: var(--accent); }
+
+  .rail { display: flex; gap: 3px; padding-bottom: 10px; }
+  .rail__seg {
+    height: 3px; flex: 1; border-radius: 2px;
+    background: var(--hairline); transition: background 180ms ease;
+  }
+  .rail__seg[data-state="done"] { background: var(--accent); }
+  .rail__seg[data-state="current"] { background: var(--accent); opacity: 0.45; }
+
+  main { max-width: var(--shell); margin: 0 auto; padding: 22px 18px 132px; }
+
+  /* ---------- section header ---------- */
+
+  .sec__eyebrow {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--faint); margin: 0 0 6px;
+  }
+  .sec__title {
+    font-family: var(--font-display);
+    font-size: 27px; line-height: 1.2; letter-spacing: -0.015em;
+    margin: 0; text-wrap: balance; font-weight: 600;
+  }
+  .sec__note {
+    margin: 10px 0 0; color: var(--muted); font-size: 14.5px;
+    max-width: 60ch;
+  }
+  .sec__script {
+    margin: 14px 0 0; padding: 13px 15px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--r-sm);
+    font-size: 15px; color: var(--ink); font-style: italic;
+  }
+  .sec__script b { font-style: normal; display: block; font-size: 11px;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+    margin-bottom: 5px; font-family: var(--font-mono); font-weight: 500; }
+
+  .qlist { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
+
+  /* ---------- question card ---------- */
+
+  .q {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px 17px;
+  }
+  .q[data-critical="1"] {
+    border-left: 3px solid var(--amber);
+  }
+  .q__head { display: flex; gap: 10px; align-items: baseline; margin-bottom: 3px; }
+  .q__id {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--accent); flex: none; padding-top: 1px;
+  }
+  .q[data-critical="1"] .q__id { color: var(--amber); }
+  .q__text { margin: 0; font-size: 16.5px; line-height: 1.4; font-weight: 500; }
+  .q__hint { margin: 6px 0 0; font-size: 13.5px; color: var(--muted); }
+  .q__tag {
+    display: inline-block; font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px; margin-left: 8px;
+    background: var(--amber-wash); color: var(--amber); vertical-align: 2px;
+  }
+  .q__why {
+    margin: 9px 0 0; padding: 9px 12px; border-radius: var(--r-sm);
+    background: var(--amber-wash); color: var(--amber);
+    font-size: 13px; line-height: 1.45;
+  }
+
+  .opts { display: flex; flex-direction: column; gap: 7px; margin-top: 12px; }
+
+  .opt {
+    position: relative;
+    display: flex; align-items: center; gap: 11px;
+    min-height: 46px; padding: 8px 13px;
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    background: var(--raised); cursor: pointer;
+    transition: border-color 140ms ease, background 140ms ease;
+  }
+  .opt:hover { border-color: var(--accent); }
+  .opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .opt__mark {
+    width: 19px; height: 19px; flex: none;
+    border: 1.5px solid var(--faint);
+    display: grid; place-items: center;
+    transition: border-color 140ms ease, background 140ms ease;
+  }
+  .opt--single .opt__mark { border-radius: 50%; }
+  .opt--multi .opt__mark { border-radius: 5px; }
+  .opt__mark::after {
+    content: ""; width: 9px; height: 9px; border-radius: inherit;
+    background: var(--accent-ink); transform: scale(0);
+    transition: transform 140ms ease;
+  }
+  .opt--multi .opt__mark::after { width: 10px; height: 10px; border-radius: 2px; }
+  .opt__label { font-size: 15.5px; line-height: 1.35; }
+  .opt:has(input:checked) { border-color: var(--accent); background: var(--accent-wash); }
+  .opt:has(input:checked) .opt__mark { border-color: var(--accent); background: var(--accent); }
+  .opt:has(input:checked) .opt__mark::after { transform: scale(1); }
+  .opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .opt[data-terminate="1"]:has(input:checked) {
+    border-color: var(--danger); background: var(--danger-wash);
+  }
+  .opt[data-terminate="1"]:has(input:checked) .opt__mark {
+    border-color: var(--danger); background: var(--danger);
+  }
+
+  /* ---------- scale ---------- */
+
+  .scale { margin-top: 13px; }
+  .scale__row { display: flex; gap: 6px; }
+  .scale__btn {
+    flex: 1; min-height: 50px; cursor: pointer;
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    background: var(--raised); color: var(--ink);
+    font-family: var(--font-mono); font-size: 16px; font-variant-numeric: tabular-nums;
+    transition: border-color 140ms ease, background 140ms ease;
+  }
+  .scale__btn:hover { border-color: var(--accent); }
+  .scale__btn[aria-pressed="true"] {
+    background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600;
+  }
+  .scale__ends {
+    display: flex; justify-content: space-between; gap: 12px;
+    margin-top: 7px; font-size: 12.5px; color: var(--muted);
+  }
+
+  /* ---------- inputs ---------- */
+
+  .field {
+    width: 100%; margin-top: 12px; padding: 12px 13px;
+    background: var(--raised); color: var(--ink);
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    font-size: 16px; line-height: 1.45;
+  }
+  .field::placeholder { color: var(--faint); }
+  .field:focus { border-color: var(--accent); outline: none; }
+  textarea.field { min-height: 88px; resize: vertical; }
+  .field--num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+  /* ---------- nav ---------- */
+
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 11px 18px calc(11px + env(safe-area-inset-bottom));
+  }
+  .nav__inner {
+    max-width: var(--shell); margin: 0 auto;
+    display: flex; gap: 10px; align-items: center;
+  }
+
+  .btn {
+    appearance: none; cursor: pointer; border-radius: var(--r-md);
+    padding: 13px 20px; font-size: 15.5px; font-weight: 500;
+    border: 1px solid var(--border); background: var(--raised); color: var(--ink);
+    transition: border-color 140ms ease, background 140ms ease, opacity 140ms ease;
+    min-height: 48px;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--accent); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn--primary {
+    background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+    flex: 1; font-weight: 600;
+  }
+  .btn--danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+  .btn--ghost { background: transparent; }
+  .btn--wide { width: 100%; }
+
+  /* ---------- panels ---------- */
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-lg); padding: 20px; margin-top: 16px;
+  }
+  .panel__title {
+    font-family: var(--font-display); font-size: 20px; font-weight: 600;
+    margin: 0 0 6px; letter-spacing: -0.01em;
+  }
+  .panel__body { color: var(--muted); font-size: 14.5px; margin: 0; }
+
+  .panel--terminate { border-color: var(--danger); }
+  .panel--terminate .panel__title { color: var(--danger); }
+
+  .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > .btn { flex: 1; min-width: 140px; }
+
+  .stat {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 13px 0; border-bottom: 1px solid var(--hairline);
+  }
+  .stat:last-child { border-bottom: 0; }
+  .stat__k { color: var(--muted); font-size: 14px; flex: 1; }
+  .stat__v {
+    font-family: var(--font-mono); font-size: 18px;
+    font-variant-numeric: tabular-nums; font-weight: 600;
+  }
+
+  .note {
+    font-size: 13px; color: var(--muted); line-height: 1.55;
+    margin: 14px 0 0;
+  }
+  .note strong { color: var(--ink); font-weight: 600; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(8px);
+    background: var(--ink); color: var(--ground);
+    padding: 11px 18px; border-radius: 999px; font-size: 14px; font-weight: 500;
+    opacity: 0; pointer-events: none; transition: opacity 180ms ease, transform 180ms ease;
+    z-index: 40; max-width: calc(100vw - 36px); text-align: center;
+  }
+  .toast[data-show="1"] { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .hide { display: none !important; }
+</style>
+
+<header class="topbar">
+  <div class="topbar__inner">
+    <div class="topbar__row">
+      <h1 class="wordmark">Grocery-Mart <span>· shopkeeper field survey</span></h1>
+      <button class="chip" id="chipCount" type="button" title="View and export saved responses">0 saved</button>
+      <button class="iconbtn" id="themeBtn" type="button" aria-label="Toggle colour theme" title="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" aria-hidden="true">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+        </svg>
+      </button>
+    </div>
+    <div class="rail" id="rail" aria-hidden="true"></div>
+  </div>
+</header>
+
+<main id="main"></main>
+
+<nav class="nav" id="nav">
+  <div class="nav__inner" id="navInner"></div>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     Survey definition
+     type: single | multi | scale | text | longtext | number
+     critical: flags the six make-or-break questions
+     showIf:   skip logic, evaluated against the answer map
+     ============================================================ */
+
+  var SECTIONS = [
+    {
+      id: "setup",
+      eyebrow: "Before you start",
+      title: "Session setup",
+      note: "Entered once per fieldwork session. Carried onto every interview you record on this device.",
+      questions: [
+        { id: "interviewer", text: "Interviewer name or initials", type: "text", placeholder: "e.g. AK" },
+        { id: "area", text: "Suburb / area you are working today", type: "text", placeholder: "e.g. Dandenong" }
+      ]
+    },
+    {
+      id: "screener",
+      eyebrow: "Section S",
+      title: "Screener",
+      note: "Confirm you are speaking to someone who can actually decide. Screen-outs still count as data — record them.",
+      questions: [
+        {
+          id: "S1",
+          text: "Are you the owner, co-owner, or a manager who decides which online or delivery platforms this store joins?",
+          type: "single",
+          options: [
+            { v: "owner", l: "Owner or co-owner" },
+            { v: "manager_auth", l: "Manager with that authority" },
+            { v: "manager_no_auth", l: "Manager without that authority", terminate: true },
+            { v: "staff", l: "Staff member", terminate: true }
+          ],
+          hint: "If they cannot decide, ask for the owner's name and best time to return."
+        },
+        {
+          id: "S2",
+          text: "Does the store stock South Asian groceries — Indian, Pakistani, Bangladeshi, Sri Lankan, Nepali or Afghan?",
+          type: "single",
+          options: [
+            { v: "yes", l: "Yes" },
+            { v: "no", l: "No", terminate: true }
+          ]
+        },
+        { id: "S3", text: "Store name", type: "text", placeholder: "Store name" },
+        { id: "S4", text: "Suburb and postcode", type: "text", placeholder: "e.g. Footscray 3011" }
+      ]
+    },
+    {
+      id: "A",
+      eyebrow: "Section A",
+      title: "Store profile",
+      note: "Easy factual warm-up. Builds rapport before anything sensitive.",
+      questions: [
+        {
+          id: "A1", text: "How long has the store traded at this location?", type: "single",
+          options: [
+            { v: "lt1", l: "Less than 1 year" }, { v: "1_3", l: "1–3 years" },
+            { v: "3_5", l: "3–5 years" }, { v: "5_10", l: "5–10 years" },
+            { v: "10p", l: "More than 10 years" }
+          ]
+        },
+        {
+          id: "A2", text: "How many stores do you own or operate?", type: "single",
+          options: [{ v: "1", l: "Just this one" }, { v: "2_3", l: "2–3" }, { v: "4p", l: "4 or more" }]
+        },
+        {
+          id: "A3", text: "How many staff work here, including yourself?", type: "single",
+          options: [
+            { v: "1", l: "Just me" }, { v: "2_3", l: "2–3" },
+            { v: "4_6", l: "4–6" }, { v: "7p", l: "7 or more" }
+          ]
+        },
+        { id: "A4", text: "Roughly how many customers do you serve on a typical weekday?", type: "number", placeholder: "Approximate count" },
+        {
+          id: "A5", text: "What is a typical basket or transaction value?", type: "single",
+          options: [
+            { v: "lt20", l: "Under $20" }, { v: "20_40", l: "$20 – $40" },
+            { v: "40_60", l: "$40 – $60" }, { v: "60_100", l: "$60 – $100" },
+            { v: "100p", l: "Over $100" }
+          ]
+        },
+        {
+          id: "A6", text: "Which communities do you mainly serve?", type: "multi",
+          options: [
+            { v: "indian", l: "Indian" }, { v: "pakistani", l: "Pakistani" },
+            { v: "bangladeshi", l: "Bangladeshi" }, { v: "srilankan", l: "Sri Lankan" },
+            { v: "nepali", l: "Nepali" }, { v: "afghan", l: "Afghan" },
+            { v: "other", l: "Other / mixed" }
+          ]
+        }
+      ]
+    },
+    {
+      id: "B",
+      eyebrow: "Section B",
+      title: "Operations and data readiness",
+      note: "Whether a usable price feed can exist at all. If this section fails, nothing downstream matters.",
+      questions: [
+        {
+          id: "B1", text: "How do you record sales?", type: "single",
+          options: [
+            { v: "pos", l: "Electronic POS system" }, { v: "register", l: "Cash register only" },
+            { v: "manual", l: "Notebook or manual records" }, { v: "mix", l: "A mix" }
+          ]
+        },
+        {
+          id: "B2", text: "Which POS system do you use?", type: "text", placeholder: "System name",
+          showIf: function (a) { return a.B1 === "pos" || a.B1 === "mix"; }
+        },
+        {
+          id: "B3", text: "Do you keep a digital list of your products with their prices?",
+          type: "single", critical: true,
+          why: "No digital price list means no price feed, and no price feed means no product.",
+          options: [
+            { v: "pos", l: "Yes — inside the POS" }, { v: "sheet", l: "Yes — a spreadsheet" },
+            { v: "paper", l: "Paper only" }, { v: "none", l: "No list at all" }
+          ]
+        },
+        {
+          id: "B4", text: "Roughly how many distinct products do you carry?", type: "single",
+          options: [
+            { v: "lt200", l: "Under 200" }, { v: "200_500", l: "200 – 500" },
+            { v: "500_1000", l: "500 – 1,000" }, { v: "1000p", l: "Over 1,000" }
+          ]
+        },
+        {
+          id: "B5", text: "How often do you change the price of an item?", type: "single",
+          hint: "This sets how stale published prices go between syncs — an accuracy and compliance input, not just a UX one.",
+          options: [
+            { v: "daily", l: "Daily" }, { v: "weekly", l: "Weekly" },
+            { v: "fortnightly", l: "Fortnightly" }, { v: "monthly", l: "Monthly" },
+            { v: "rarely", l: "Rarely" }, { v: "varies", l: "Varies by product" }
+          ]
+        },
+        { id: "B6", text: "When a product sells out, how would a customer at home know?", type: "longtext", placeholder: "Record their answer" },
+        {
+          id: "B7", text: "Do you track stock counts for each item?", type: "single",
+          options: [
+            { v: "system", l: "Yes — system tracked" }, { v: "rough", l: "A rough idea only" }, { v: "no", l: "No" }
+          ]
+        },
+        {
+          id: "B8", text: "Do your products have barcodes that scan reliably?", type: "single",
+          options: [
+            { v: "all", l: "All of them" }, { v: "most", l: "Most" },
+            { v: "some", l: "Some" }, { v: "few", l: "Very few" }
+          ]
+        },
+        {
+          id: "B9", text: "How long would it take you to give us a price list for your top 100 items?",
+          type: "single", critical: true,
+          why: "Converts stated willingness into an effort estimate. 'Couldn't do it' is a hard blocker.",
+          options: [
+            { v: "now", l: "I have it right now" }, { v: "hours", l: "A few hours" },
+            { v: "days", l: "A few days" }, { v: "cant", l: "I couldn't do it" }
+          ]
+        }
+      ]
+    },
+    {
+      id: "C",
+      eyebrow: "Section C",
+      title: "Customers and local competition",
+      note: "Tests whether price comparison is a felt need or a founder assumption.",
+      questions: [
+        {
+          id: "C1", text: "How do new customers find you today?", type: "multi",
+          options: [
+            { v: "wom", l: "Word of mouth" }, { v: "walkby", l: "Walking past" },
+            { v: "whatsapp", l: "Community WhatsApp or Facebook groups" }, { v: "google", l: "Google" },
+            { v: "flyers", l: "Flyers" }, { v: "events", l: "Community or religious events" },
+            { v: "other", l: "Other" }
+          ]
+        },
+        {
+          id: "C2", text: "How many stores selling similar products are within about 3 km?", type: "single",
+          options: [{ v: "0", l: "None" }, { v: "1_2", l: "1–2" }, { v: "3_5", l: "3–5" }, { v: "6p", l: "6 or more" }]
+        },
+        { id: "C3", text: "When someone chooses you over the store down the road, why?", type: "longtext", placeholder: "Record their answer verbatim" },
+        {
+          id: "C4", text: "How much do your customers compare prices between stores before shopping?",
+          type: "scale", low: "Not at all", high: "Always",
+          hint: "If answers cluster at 1–2 across the sample, the core value proposition is weak."
+        },
+        {
+          id: "C5", text: "Do customers tell you that another store has something cheaper?", type: "single",
+          options: [
+            { v: "never", l: "Never" }, { v: "rarely", l: "Rarely" },
+            { v: "sometimes", l: "Sometimes" }, { v: "often", l: "Often" }
+          ]
+        }
+      ]
+    },
+    {
+      id: "D",
+      eyebrow: "Section D",
+      title: "Existing platform experience",
+      note: "Benchmarks commission expectations against what they already pay.",
+      questions: [
+        {
+          id: "D1", text: "Are you listed on any online or delivery platform now?", type: "multi",
+          options: [
+            { v: "ubereats", l: "Uber Eats" }, { v: "doordash", l: "DoorDash" },
+            { v: "menulog", l: "Menulog" }, { v: "own", l: "Our own website" },
+            { v: "whatsapp", l: "WhatsApp orders" }, { v: "facebook", l: "Facebook" },
+            { v: "none", l: "None" }
+          ]
+        },
+        {
+          id: "D2", text: "What commission or fee do you pay?", type: "text", placeholder: "e.g. 18%, or $99/month",
+          showIf: function (a) { return Array.isArray(a.D1) && a.D1.length > 0 && a.D1.indexOf("none") === -1; }
+        },
+        {
+          id: "D3", text: "How many orders a week come through it?", type: "number", placeholder: "Approximate count",
+          showIf: function (a) { return Array.isArray(a.D1) && a.D1.length > 0 && a.D1.indexOf("none") === -1; }
+        },
+        {
+          id: "D4", text: "What works well, and what frustrates you about it?", type: "longtext", placeholder: "Record their answer verbatim",
+          showIf: function (a) { return Array.isArray(a.D1) && a.D1.length > 0 && a.D1.indexOf("none") === -1; }
+        },
+        { id: "D5", text: "Have you ever left a platform? What made you leave?", type: "longtext", placeholder: "Record their answer" },
+        {
+          id: "D6", text: "How many orders a week do you take by phone or WhatsApp?", type: "number",
+          placeholder: "Approximate count",
+          hint: "WhatsApp ordering is the real incumbent in this segment, and it is free — it sets the bar you bid against."
+        }
+      ]
+    },
+    {
+      id: "E",
+      eyebrow: "Section E",
+      title: "Reaction to price comparison",
+      note: "The decisive section. Read the script neutrally and do not reveal you built the product until it is finished.",
+      script: "Some shoppers use an app that shows the price of the same product at several nearby stores, so they can see who is cheapest and order from that store.",
+      questions: [
+        { id: "E1", text: "What is your first reaction?", type: "longtext", placeholder: "Record verbatim — do not paraphrase" },
+        {
+          id: "E2", text: "How do you feel about your prices appearing next to your competitors' prices?",
+          type: "scale", low: "Very uncomfortable", high: "Very comfortable", critical: true,
+          why: "If most answers land at 1–2, the supply side will not cooperate and the marketplace cannot fill."
+        },
+        {
+          id: "E3", text: "What concerns you most about that?", type: "multi", critical: true,
+          why: "Separates fixable objections from structural ones.",
+          options: [
+            { v: "competitors", l: "Competitors seeing my prices" },
+            { v: "expensive", l: "Being seen as expensive" },
+            { v: "pricewar", l: "Starting a price war" },
+            { v: "margin", l: "Losing margin" },
+            { v: "cherrypick", l: "Customers only buying my cheap items" },
+            { v: "suppliers", l: "Suppliers seeing my prices" },
+            { v: "none", l: "No concerns" }
+          ]
+        },
+        {
+          id: "E4", text: "If you were shown as more expensive on some items, what would you do?", type: "single",
+          options: [
+            { v: "lower", l: "Lower my prices" }, { v: "nothing", l: "Nothing" },
+            { v: "leave", l: "Leave the platform" }, { v: "quality", l: "Compete on quality or range" },
+            { v: "other", l: "Something else" }
+          ]
+        },
+        { id: "E5", text: "If you were shown as cheapest on some items, what would that be worth to you?", type: "longtext", placeholder: "Record their answer" },
+        {
+          id: "E6", text: "Would you want to be able to hide the price of certain items?", type: "single",
+          options: [{ v: "yes", l: "Yes" }, { v: "no", l: "No" }, { v: "depends", l: "Depends" }]
+        },
+        {
+          id: "E7", text: "Do you give different prices to regular customers — discounts, credit, or negotiation?",
+          type: "single", critical: true,
+          why: "Informal pricing is common in this segment. If the real price differs from the shelf price, a single published number is both wrong and a misrepresentation risk.",
+          options: [{ v: "never", l: "Never" }, { v: "sometimes", l: "Sometimes" }, { v: "often", l: "Often" }]
+        },
+        { id: "E8", text: "Does your price ever depend on quantity, or on who the customer is?", type: "longtext", placeholder: "Record their answer" }
+      ]
+    },
+    {
+      id: "F",
+      eyebrow: "Section F",
+      title: "Commission and pricing",
+      note: "Four-point price sensitivity. Ask all four in order — the spread matters more than any single number.",
+      script: "Think about a $50 order that the platform brings you, from a customer who would not otherwise have found you.",
+      questions: [
+        { id: "F1a", text: "At what commission would you doubt the service is serious — too cheap to be real?", type: "text", placeholder: "%" },
+        { id: "F1b", text: "At what commission would this be a genuine bargain?", type: "text", placeholder: "%" },
+        { id: "F1c", text: "At what commission does it get expensive, but still worth doing?", type: "text", placeholder: "%" },
+        { id: "F1d", text: "At what commission would you never use it?", type: "text", placeholder: "%" },
+        {
+          id: "F2", text: "Which pricing model would you prefer?", type: "single",
+          options: [
+            { v: "commission", l: "Percentage per order" }, { v: "monthly", l: "Flat monthly fee" },
+            { v: "freemium", l: "Free listing, pay for promotion" },
+            { v: "newcust", l: "Pay only for first-time customers" }
+          ]
+        },
+        { id: "F3", text: "What is the most you would pay per month for a listing that brought you no orders?", type: "text", placeholder: "$ per month" },
+        {
+          id: "F4", text: "Who should pay the delivery fee?", type: "single",
+          options: [
+            { v: "customer", l: "The customer" }, { v: "store", l: "The store" },
+            { v: "split", l: "Split between us" }, { v: "platform", l: "The platform" }
+          ]
+        }
+      ]
+    },
+    {
+      id: "G",
+      eyebrow: "Section G",
+      title: "Fulfilment capability",
+      note: "Whether they can physically service an order once it lands.",
+      questions: [
+        {
+          id: "G1", text: "Could you pick and pack an order within 30 minutes during trading hours?", type: "single",
+          options: [
+            { v: "always", l: "Always" }, { v: "usually", l: "Usually" },
+            { v: "quiet", l: "Only during quiet periods" }, { v: "no", l: "No" }
+          ]
+        },
+        {
+          id: "G2", text: "Who would do the picking?", type: "single",
+          options: [
+            { v: "me", l: "Me" }, { v: "staff", l: "Existing staff" }, { v: "hire", l: "I would need to hire" }
+          ]
+        },
+        {
+          id: "G3", text: "Do you deliver today?", type: "single",
+          options: [
+            { v: "owndriver", l: "Yes — own driver" }, { v: "staff", l: "Yes — staff deliver" }, { v: "no", l: "No" }
+          ]
+        },
+        { id: "G4", text: "How would you feel about a platform driver collecting orders from your store?", type: "longtext", placeholder: "Record their answer" },
+        { id: "G5", text: "When are you busiest — times you could not absorb an extra online order?", type: "text", placeholder: "e.g. Sat 4–7pm" },
+        {
+          id: "G6", text: "Is there a smartphone or tablet at the counter that could receive order alerts?", type: "single",
+          options: [
+            { v: "yes_android", l: "Yes — Android" }, { v: "yes_iphone", l: "Yes — iPhone or iPad" },
+            { v: "personal", l: "Only a personal phone" }, { v: "no", l: "No" }
+          ]
+        },
+        { id: "G7", text: "Who would use it, and in which language do they prefer to work?", type: "text", placeholder: "e.g. my son — Hindi" }
+      ]
+    },
+    {
+      id: "H",
+      eyebrow: "Section H",
+      title: "Partnership and exclusivity",
+      note: "Tests appetite for an area-exclusive deal, and flags who is likely to object if a neighbour is chosen instead.",
+      questions: [
+        {
+          id: "H1", text: "If we launched with only one store in this area, would you want it to be you?", type: "single",
+          options: [{ v: "yes", l: "Yes" }, { v: "no", l: "No" }, { v: "depends", l: "Depends on the terms" }]
+        },
+        { id: "H2", text: "What would you expect in return for being the exclusive partner?", type: "longtext", placeholder: "Record their answer" },
+        {
+          id: "H3", text: "Would you accept a 12-month exclusive arrangement?", type: "single",
+          showIf: function (a) { return a.H1 !== "no"; },
+          options: [{ v: "yes", l: "Yes" }, { v: "no", l: "No" }, { v: "shorter", l: "Only if shorter" }, { v: "depends", l: "Depends on terms" }]
+        },
+        { id: "H3b", text: "What would make that a no?", type: "longtext", placeholder: "Record their answer", showIf: function (a) { return a.H1 !== "no"; } },
+        {
+          id: "H4", text: "If we chose a neighbouring store instead of you, how would you feel — and what would you do?",
+          type: "longtext", placeholder: "Record verbatim",
+          hint: "Early warning on who escalates to the ACCC or the Victorian Small Business Commission."
+        },
+        {
+          id: "H5", text: "Are you a member of a local retailer association or business group?", type: "single",
+          hint: "Tells you whether neighbouring stores are organised enough to bargain collectively.",
+          options: [{ v: "yes", l: "Yes" }, { v: "no", l: "No" }, { v: "informal", l: "Informal group only" }]
+        },
+        { id: "H5b", text: "Which group?", type: "text", placeholder: "Group name", showIf: function (a) { return a.H5 === "yes" || a.H5 === "informal"; } }
+      ]
+    },
+    {
+      id: "I",
+      eyebrow: "Section I",
+      title: "Commitment",
+      note: "Stated intent inflates. Only one question here costs the respondent anything — watch the gap between I1 and I3.",
+      questions: [
+        {
+          id: "I1", text: "How likely are you to list your store?",
+          type: "scale", low: "Very unlikely", high: "Very likely"
+        },
+        {
+          id: "I2", text: "If we set it up for you at no cost, would you sign up today?", type: "single",
+          options: [{ v: "yes", l: "Yes" }, { v: "no", l: "No" }, { v: "think", l: "Need to think about it" }]
+        },
+        {
+          id: "I3", text: "Would you give us your top-100 price list this week so we can build your listing?",
+          type: "single", critical: true,
+          why: "The only costly signal in the survey. The gap between this and I1 is your realistic conversion rate.",
+          options: [{ v: "yes", l: "Yes" }, { v: "no", l: "No" }, { v: "maybe", l: "Maybe later" }]
+        },
+        {
+          id: "I4", text: "Would you display a sign telling customers about it?", type: "single",
+          options: [{ v: "yes", l: "Yes" }, { v: "no", l: "No" }, { v: "maybe", l: "Maybe" }]
+        },
+        { id: "I5", text: "Contact details for a follow-up demo", type: "text", placeholder: "Name and phone or email" }
+      ]
+    },
+    {
+      id: "J",
+      eyebrow: "Section J",
+      title: "Open questions",
+      note: "Let them talk. The best insight in the whole instrument usually arrives here.",
+      questions: [
+        { id: "J1", text: "What is the biggest problem in running this store right now?", type: "longtext", placeholder: "Record verbatim" },
+        { id: "J2", text: "If you could change one thing about how customers find and buy from you, what would it be?", type: "longtext", placeholder: "Record verbatim" },
+        { id: "J3", text: "What would make you say no to this immediately?", type: "longtext", placeholder: "Record verbatim" },
+        { id: "J4", text: "Anything we have not asked about?", type: "longtext", placeholder: "Record verbatim" }
+      ]
+    },
+    {
+      id: "K",
+      eyebrow: "Section K",
+      title: "Optional details",
+      note: "Sensitive. Ask last, and make clear they can decline any of these.",
+      questions: [
+        {
+          id: "K1", text: "Approximate weekly turnover", type: "single",
+          options: [
+            { v: "lt5k", l: "Under $5,000" }, { v: "5_15k", l: "$5,000 – $15,000" },
+            { v: "15_30k", l: "$15,000 – $30,000" }, { v: "30kp", l: "Over $30,000" },
+            { v: "decline", l: "Prefer not to say" }
+          ]
+        },
+        { id: "K2", text: "Preferred language for business communication", type: "text", placeholder: "e.g. Urdu" },
+        {
+          id: "K3", text: "Years operating a business in Australia", type: "single",
+          options: [
+            { v: "lt2", l: "Under 2" }, { v: "2_5", l: "2–5" },
+            { v: "5_10", l: "5–10" }, { v: "10p", l: "Over 10" },
+            { v: "decline", l: "Prefer not to say" }
+          ]
+        },
+        { id: "notes", text: "Interviewer notes — tone, body language, anything the answers miss", type: "longtext", placeholder: "Your own observations" }
+      ]
+    }
+  ];
+
+  var DRAFT_KEY = "gm-survey-draft-v1";
+  var DONE_KEY = "gm-survey-responses-v1";
+  var SESSION_KEY = "gm-survey-session-v1";
+  var THEME_KEY = "gm-survey-theme-v1";
+
+  var state = {
+    step: 0,
+    answers: {},
+    session: {},
+    startedAt: null,
+    terminated: false,
+    finished: false,
+    reviewing: false
+  };
+
+  var elMain = document.getElementById("main");
+  var elNav = document.getElementById("navInner");
+  var elRail = document.getElementById("rail");
+  var elChip = document.getElementById("chipCount");
+  var elToast = document.getElementById("toast");
+
+  /* ---------- storage ---------- */
+
+  function read(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+  function write(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+    catch (e) { return false; }
+  }
+  function completed() { return read(DONE_KEY, []); }
+
+  function saveDraft() {
+    write(DRAFT_KEY, { step: state.step, answers: state.answers, startedAt: state.startedAt });
+  }
+  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+
+  /* ---------- helpers ---------- */
+
+  function toast(msg) {
+    elToast.textContent = msg;
+    elToast.setAttribute("data-show", "1");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { elToast.removeAttribute("data-show"); }, 2200);
+  }
+
+  function visibleQuestions(section) {
+    return section.questions.filter(function (q) {
+      return typeof q.showIf !== "function" || q.showIf(state.answers);
+    });
+  }
+
+  function isTerminated() {
+    var s = SECTIONS[1];
+    for (var i = 0; i < s.questions.length; i++) {
+      var q = s.questions[i];
+      if (!q.options) continue;
+      for (var j = 0; j < q.options.length; j++) {
+        if (q.options[j].terminate && state.answers[q.id] === q.options[j].v) return true;
+      }
+    }
+    return false;
+  }
+
+  function updateChip() {
+    var n = completed().length;
+    elChip.textContent = n + (n === 1 ? " saved" : " saved");
+  }
+
+  /* ---------- rendering ---------- */
+
+  function renderRail() {
+    elRail.innerHTML = "";
+    for (var i = 0; i < SECTIONS.length; i++) {
+      var seg = document.createElement("div");
+      seg.className = "rail__seg";
+      if (i < state.step) seg.setAttribute("data-state", "done");
+      else if (i === state.step) seg.setAttribute("data-state", "current");
+      elRail.appendChild(seg);
+    }
+  }
+
+  function questionNode(q) {
+    var card = document.createElement("div");
+    card.className = "q";
+    if (q.critical) card.setAttribute("data-critical", "1");
+
+    var head = document.createElement("div");
+    head.className = "q__head";
+
+    var idEl = document.createElement("span");
+    idEl.className = "q__id";
+    idEl.textContent = /^[A-Z]/.test(q.id) ? q.id : "—";
+    head.appendChild(idEl);
+
+    var textEl = document.createElement("p");
+    textEl.className = "q__text";
+    textEl.textContent = q.text;
+    if (q.critical) {
+      var tag = document.createElement("span");
+      tag.className = "q__tag";
+      tag.textContent = "decisive";
+      textEl.appendChild(tag);
+    }
+    head.appendChild(textEl);
+    card.appendChild(head);
+
+    if (q.hint) {
+      var hint = document.createElement("p");
+      hint.className = "q__hint";
+      hint.textContent = q.hint;
+      card.appendChild(hint);
+    }
+
+    if (q.type === "single" || q.type === "multi") {
+      var wrap = document.createElement("div");
+      wrap.className = "opts";
+      q.options.forEach(function (opt) {
+        var lab = document.createElement("label");
+        lab.className = "opt opt--" + (q.type === "single" ? "single" : "multi");
+        if (opt.terminate) lab.setAttribute("data-terminate", "1");
+
+        var input = document.createElement("input");
+        input.type = q.type === "single" ? "radio" : "checkbox";
+        input.name = q.id;
+        input.value = opt.v;
+
+        if (q.type === "single") {
+          input.checked = state.answers[q.id] === opt.v;
+        } else {
+          var arr = state.answers[q.id] || [];
+          input.checked = arr.indexOf(opt.v) !== -1;
+        }
+
+        input.addEventListener("change", function () {
+          if (q.type === "single") {
+            state.answers[q.id] = opt.v;
+          } else {
+            var cur = state.answers[q.id] || [];
+            if (input.checked) {
+              if (opt.v === "none") cur = ["none"];
+              else { cur = cur.filter(function (v) { return v !== "none"; }); cur.push(opt.v); }
+            } else {
+              cur = cur.filter(function (v) { return v !== opt.v; });
+            }
+            state.answers[q.id] = cur;
+          }
+          saveDraft();
+          render();
+        });
+
+        var mark = document.createElement("span");
+        mark.className = "opt__mark";
+        mark.setAttribute("aria-hidden", "true");
+
+        var txt = document.createElement("span");
+        txt.className = "opt__label";
+        txt.textContent = opt.l;
+
+        lab.appendChild(input);
+        lab.appendChild(mark);
+        lab.appendChild(txt);
+        wrap.appendChild(lab);
+      });
+      card.appendChild(wrap);
+    }
+
+    if (q.type === "scale") {
+      var sc = document.createElement("div");
+      sc.className = "scale";
+      var row = document.createElement("div");
+      row.className = "scale__row";
+      for (var n = 1; n <= 5; n++) {
+        (function (val) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "scale__btn";
+          b.textContent = String(val);
+          b.setAttribute("aria-pressed", state.answers[q.id] === val ? "true" : "false");
+          b.setAttribute("aria-label", q.id + " rating " + val + " of 5");
+          b.addEventListener("click", function () {
+            state.answers[q.id] = val;
+            saveDraft();
+            render();
+          });
+          row.appendChild(b);
+        })(n);
+      }
+      sc.appendChild(row);
+      var ends = document.createElement("div");
+      ends.className = "scale__ends";
+      var lo = document.createElement("span"); lo.textContent = q.low || "Low";
+      var hi = document.createElement("span"); hi.textContent = q.high || "High";
+      ends.appendChild(lo); ends.appendChild(hi);
+      sc.appendChild(ends);
+      card.appendChild(sc);
+    }
+
+    if (q.type === "text" || q.type === "number") {
+      var inp = document.createElement("input");
+      inp.className = "field" + (q.type === "number" ? " field--num" : "");
+      inp.type = q.type === "number" ? "number" : "text";
+      if (q.type === "number") { inp.inputMode = "numeric"; inp.min = "0"; }
+      inp.placeholder = q.placeholder || "";
+      inp.value = state.answers[q.id] == null ? "" : state.answers[q.id];
+      inp.setAttribute("aria-label", q.text);
+      inp.addEventListener("input", function () {
+        state.answers[q.id] = inp.value;
+        saveDraft();
+        syncNavState();
+      });
+      card.appendChild(inp);
+    }
+
+    if (q.type === "longtext") {
+      var ta = document.createElement("textarea");
+      ta.className = "field";
+      ta.placeholder = q.placeholder || "";
+      ta.value = state.answers[q.id] == null ? "" : state.answers[q.id];
+      ta.setAttribute("aria-label", q.text);
+      ta.addEventListener("input", function () {
+        state.answers[q.id] = ta.value;
+        saveDraft();
+      });
+      card.appendChild(ta);
+    }
+
+    if (q.why) {
+      var why = document.createElement("p");
+      why.className = "q__why";
+      why.textContent = q.why;
+      card.appendChild(why);
+    }
+
+    return card;
+  }
+
+  /* Keeps the nav's enabled state honest while typing, without a full re-render
+     (which would steal focus out of the field mid-keystroke). */
+  function syncNavState() {
+    if (state.finished || state.step !== 0) return;
+    var b = elNav.querySelector(".btn--primary");
+    if (b) b.disabled = (state.answers.interviewer || "").trim().length === 0;
+  }
+
+  function button(label, variant, onClick, disabled) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn" + (variant ? " btn--" + variant : "");
+    b.textContent = label;
+    /* Always bind — a button that starts disabled can be enabled later by
+       syncNavState, and would otherwise be left with no handler. */
+    b.addEventListener("click", onClick);
+    b.disabled = !!disabled;
+    return b;
+  }
+
+  function renderTerminate() {
+    elMain.innerHTML = "";
+    var p = document.createElement("div");
+    p.className = "panel panel--terminate";
+    var t = document.createElement("h2");
+    t.className = "panel__title";
+    t.textContent = "Screened out";
+    var b = document.createElement("p");
+    b.className = "panel__body";
+    b.textContent = "This respondent does not qualify. Thank them for their time, and if they are staff, ask for the owner's name and the best time to return. Record the screen-out so your response rate stays honest.";
+    p.appendChild(t); p.appendChild(b);
+    elMain.appendChild(p);
+
+    elNav.innerHTML = "";
+    /* Clear whichever answer triggered the screen-out, otherwise Back lands on a
+       screener that instantly re-terminates and a mis-tap becomes inescapable. */
+    elNav.appendChild(button("Back — I mis-tapped", "ghost", function () {
+      SECTIONS[1].questions.forEach(function (q) {
+        if (!q.options) return;
+        q.options.forEach(function (o) {
+          if (o.terminate && state.answers[q.id] === o.v) delete state.answers[q.id];
+        });
+      });
+      state.step = 1;
+      saveDraft();
+      render();
+    }));
+    elNav.appendChild(button("Save screen-out and start next", "primary", function () { finalize(true); }));
+  }
+
+  /* Running read on the six decisive questions. Percentages are of qualified
+     interviews only — screen-outs never answered them. */
+  function signalRows(rows) {
+    var q = rows.filter(function (r) { return !r._screenedOut; });
+    if (!q.length) return [];
+    var pct = function (n) { return Math.round((n / q.length) * 100) + "%"; };
+    var has = function (id, vals) {
+      return q.filter(function (r) { return vals.indexOf(r[id]) !== -1; }).length;
+    };
+    var scores = q.map(function (r) { return Number(r.E2); })
+                  .filter(function (n) { return n >= 1 && n <= 5; });
+    var mean = scores.length
+      ? (scores.reduce(function (a, b) { return a + b; }, 0) / scores.length).toFixed(1) + " / 5"
+      : "—";
+    return [
+      ["B3 · keeps a digital price list", pct(has("B3", ["pos", "sheet"]))],
+      ["B9 · could supply top-100 within hours", pct(has("B9", ["now", "hours"]))],
+      ["E2 · mean comfort with comparison", mean],
+      ["E7 · never varies price by customer", pct(has("E7", ["never"]))],
+      ["I3 · will hand over the price list", pct(has("I3", ["yes"]))]
+    ];
+  }
+
+  function statRow(k, v) {
+    var row = document.createElement("div");
+    row.className = "stat";
+    var ke = document.createElement("span"); ke.className = "stat__k"; ke.textContent = k;
+    var ve = document.createElement("span"); ve.className = "stat__v"; ve.textContent = v;
+    row.appendChild(ke); row.appendChild(ve);
+    return row;
+  }
+
+  function renderSummary(reviewing) {
+    elMain.innerHTML = "";
+    var all = completed();
+    var qualified = all.filter(function (r) { return !r._screenedOut; });
+
+    var p = document.createElement("div");
+    p.className = "panel";
+    var t = document.createElement("h2");
+    t.className = "panel__title";
+    t.textContent = reviewing ? "Responses on this device" : "Interview saved";
+    var b = document.createElement("p");
+    b.className = "panel__body";
+    b.textContent = all.length === 0
+      ? "Nothing recorded on this device yet."
+      : "Stored on this device only. Export before you clear the browser or hand the device to someone else.";
+    p.appendChild(t); p.appendChild(b);
+
+    var stats = document.createElement("div");
+    stats.style.marginTop = "14px";
+    [["Interviews on this device", all.length],
+     ["Qualified", qualified.length],
+     ["Screened out", all.length - qualified.length]].forEach(function (pair) {
+      stats.appendChild(statRow(pair[0], pair[1]));
+    });
+    p.appendChild(stats);
+    elMain.appendChild(p);
+
+    /* the collected interviews, newest first */
+    if (all.length) {
+      var listPanel = document.createElement("div");
+      listPanel.className = "panel";
+      var lt = document.createElement("h2");
+      lt.className = "panel__title";
+      lt.textContent = "Collected";
+      listPanel.appendChild(lt);
+
+      var scroller = document.createElement("div");
+      scroller.className = "scroller";
+
+      all.slice().reverse().forEach(function (r) {
+        var row = document.createElement("div");
+        row.className = "rec";
+
+        var main = document.createElement("div");
+        main.className = "rec__main";
+
+        var name = document.createElement("div");
+        name.className = "rec__name";
+        name.textContent = r.S3 || "(store name not recorded)";
+
+        var meta = document.createElement("div");
+        meta.className = "rec__meta";
+        var when = r._endedAt ? r._endedAt.slice(0, 16).replace("T", " ") : "";
+        var bits = [r._id, when];
+        if (r._area) bits.push(r._area);
+        if (r._interviewer) bits.push(r._interviewer);
+        if (r._minutes !== "" && r._minutes != null) bits.push(r._minutes + " min");
+        meta.textContent = bits.join("  ·  ");
+
+        main.appendChild(name);
+        main.appendChild(meta);
+
+        var pill = document.createElement("span");
+        pill.className = "pill " + (r._screenedOut ? "pill--out" : "pill--ok");
+        pill.textContent = r._screenedOut ? "screened out" : "qualified";
+
+        row.appendChild(main);
+        row.appendChild(pill);
+        scroller.appendChild(row);
+      });
+
+      listPanel.appendChild(scroller);
+      elMain.appendChild(listPanel);
+    }
+
+    /* running read on the decisive six */
+    var signals = signalRows(all);
+    if (signals.length) {
+      var sigPanel = document.createElement("div");
+      sigPanel.className = "panel";
+      var st = document.createElement("h2");
+      st.className = "panel__title";
+      st.textContent = "Decisive questions so far";
+      var sb = document.createElement("p");
+      sb.className = "panel__body";
+      sb.textContent = "Across " + qualified.length + " qualified " +
+        (qualified.length === 1 ? "interview" : "interviews") + " on this device. Directional only until the samples merge.";
+      sigPanel.appendChild(st); sigPanel.appendChild(sb);
+
+      var sigStats = document.createElement("div");
+      sigStats.style.marginTop = "14px";
+      signals.forEach(function (pair) { sigStats.appendChild(statRow(pair[0], pair[1])); });
+      sigPanel.appendChild(sigStats);
+      elMain.appendChild(sigPanel);
+    }
+
+    var actions = document.createElement("div");
+    actions.className = "panel";
+    var at = document.createElement("h2");
+    at.className = "panel__title";
+    at.textContent = "Export";
+    var ab = document.createElement("p");
+    ab.className = "panel__body";
+    ab.textContent = "CSV opens directly in Excel or Google Sheets — one row per interview.";
+    actions.appendChild(at); actions.appendChild(ab);
+
+    var rowBtns = document.createElement("div");
+    rowBtns.className = "row";
+    rowBtns.style.marginTop = "14px";
+    rowBtns.appendChild(button("Download CSV", null, exportCsv, all.length === 0));
+    rowBtns.appendChild(button("Download JSON", null, exportJson, all.length === 0));
+    actions.appendChild(rowBtns);
+
+    var note = document.createElement("p");
+    note.className = "note";
+    note.innerHTML = "<strong>Contact details are personal information.</strong> Once exported, move the file into your own storage and delete it from the device. Nothing here is transmitted anywhere on its own.";
+    actions.appendChild(note);
+
+    var clear = document.createElement("div");
+    clear.className = "row";
+    clear.style.marginTop = "14px";
+    clear.appendChild(button("Clear all responses on this device", "danger", function () {
+      if (!confirm("Delete all " + all.length + " saved interviews from this device? Export first — this cannot be undone.")) return;
+      try { localStorage.removeItem(DONE_KEY); } catch (e) {}
+      updateChip();
+      render();
+      toast("All responses cleared");
+    }, all.length === 0));
+    actions.appendChild(clear);
+
+    elMain.appendChild(actions);
+
+    elNav.innerHTML = "";
+
+    if (reviewing) {
+      elNav.appendChild(button("Back", "ghost", function () {
+        state.reviewing = false;
+        window.scrollTo(0, 0);
+        render();
+      }));
+    }
+
+    elNav.appendChild(button(reviewing ? "New interview" : "Start next interview", "primary", function () {
+      state.answers = {};
+      if (state.session.interviewer) {
+        state.answers.interviewer = state.session.interviewer;
+        state.answers.area = state.session.area;
+      }
+      state.step = state.session.interviewer ? 1 : 0;
+      state.startedAt = new Date().toISOString();
+      state.finished = false;
+      state.reviewing = false;
+      saveDraft();
+      window.scrollTo(0, 0);
+      render();
+    }));
+  }
+
+  function render() {
+    updateChip();
+
+    if (state.reviewing) { renderRail(); renderSummary(true); return; }
+    if (state.finished) { renderRail(); renderSummary(false); return; }
+    if (state.step === 1 && isTerminated()) { renderRail(); renderTerminate(); return; }
+
+    var section = SECTIONS[state.step];
+    var qs = visibleQuestions(section);
+
+    renderRail();
+    elMain.innerHTML = "";
+
+    var eyebrow = document.createElement("p");
+    eyebrow.className = "sec__eyebrow";
+    eyebrow.textContent = section.eyebrow;
+    elMain.appendChild(eyebrow);
+
+    var title = document.createElement("h2");
+    title.className = "sec__title";
+    title.textContent = section.title;
+    elMain.appendChild(title);
+
+    if (section.note) {
+      var note = document.createElement("p");
+      note.className = "sec__note";
+      note.textContent = section.note;
+      elMain.appendChild(note);
+    }
+
+    if (section.script) {
+      var sc = document.createElement("div");
+      sc.className = "sec__script";
+      var lbl = document.createElement("b");
+      lbl.textContent = "Read aloud, word for word";
+      sc.appendChild(lbl);
+      sc.appendChild(document.createTextNode(section.script));
+      elMain.appendChild(sc);
+    }
+
+    var list = document.createElement("div");
+    list.className = "qlist";
+    qs.forEach(function (q) { list.appendChild(questionNode(q)); });
+    elMain.appendChild(list);
+
+    if (state.step === SECTIONS.length - 1) {
+      var tail = document.createElement("p");
+      tail.className = "note";
+      tail.innerHTML = "<strong>Before you leave:</strong> thank them, confirm the follow-up you promised, and hand over the incentive if you offered one.";
+      elMain.appendChild(tail);
+    }
+
+    /* nav */
+    elNav.innerHTML = "";
+    if (state.step === 0) {
+      var ready = (state.answers.interviewer || "").trim().length > 0;
+      elNav.appendChild(button("Start interview", "primary", function () {
+        state.session = { interviewer: state.answers.interviewer, area: state.answers.area };
+        write(SESSION_KEY, state.session);
+        state.step = 1;
+        state.startedAt = new Date().toISOString();
+        saveDraft();
+        window.scrollTo(0, 0);
+        render();
+      }, !ready));
+      return;
+    }
+
+    elNav.appendChild(button("Back", "ghost", function () {
+      state.step = Math.max(0, state.step - 1);
+      saveDraft();
+      window.scrollTo(0, 0);
+      render();
+    }));
+
+    if (state.step < SECTIONS.length - 1) {
+      elNav.appendChild(button("Next", "primary", function () {
+        state.step += 1;
+        saveDraft();
+        window.scrollTo(0, 0);
+        render();
+      }));
+    } else {
+      elNav.appendChild(button("Save interview", "primary", function () { finalize(false); }));
+    }
+  }
+
+  /* ---------- finalize ---------- */
+
+  function finalize(screenedOut) {
+    var rec = {};
+    rec._id = "R" + Date.now().toString(36).toUpperCase();
+    rec._interviewer = state.session.interviewer || state.answers.interviewer || "";
+    rec._area = state.session.area || state.answers.area || "";
+    rec._startedAt = state.startedAt;
+    rec._endedAt = new Date().toISOString();
+    rec._minutes = state.startedAt
+      ? Math.round((Date.parse(rec._endedAt) - Date.parse(state.startedAt)) / 60000)
+      : "";
+    rec._screenedOut = !!screenedOut;
+
+    SECTIONS.forEach(function (s) {
+      if (s.id === "setup") return;
+      s.questions.forEach(function (q) {
+        var v = state.answers[q.id];
+        rec[q.id] = Array.isArray(v) ? v.join("; ") : (v == null ? "" : v);
+      });
+    });
+
+    var all = completed();
+    all.push(rec);
+    if (!write(DONE_KEY, all)) {
+      alert("Could not save — this device's storage is full or blocked. Export what you have before continuing.");
+      return;
+    }
+
+    clearDraft();
+    state.finished = true;
+    state.terminated = false;
+    window.scrollTo(0, 0);
+    render();
+    toast(screenedOut ? "Screen-out recorded" : "Interview saved");
+  }
+
+  /* ---------- export ---------- */
+
+  function csvCell(v) {
+    var s = v == null ? "" : String(v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function exportCsv() {
+    var rows = completed();
+    if (!rows.length) return;
+
+    var cols = ["_id", "_interviewer", "_area", "_startedAt", "_endedAt", "_minutes", "_screenedOut"];
+    SECTIONS.forEach(function (s) {
+      if (s.id === "setup") return;
+      s.questions.forEach(function (q) { cols.push(q.id); });
+    });
+
+    var lines = [cols.map(csvCell).join(",")];
+    rows.forEach(function (r) {
+      lines.push(cols.map(function (c) { return csvCell(r[c]); }).join(","));
+    });
+
+    download(lines.join("\r\n"), "text/csv;charset=utf-8", "csv");
+  }
+
+  function exportJson() {
+    var rows = completed();
+    if (!rows.length) return;
+    download(JSON.stringify(rows, null, 2), "application/json", "json");
+  }
+
+  function download(text, mime, ext) {
+    var stamp = new Date().toISOString().slice(0, 10);
+    var name = "grocery-mart-shopkeeper-survey-" + stamp + "." + ext;
+    var blob = new Blob([ext === "csv" ? "﻿" + text : text], { type: mime });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    toast("Downloaded " + name);
+  }
+
+  /* ---------- theme ---------- */
+
+  var themeBtn = document.getElementById("themeBtn");
+  var savedTheme = read(THEME_KEY, null);
+  if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+
+  elChip.addEventListener("click", function () {
+    if (state.reviewing) return;
+    state.reviewing = true;
+    window.scrollTo(0, 0);
+    render();
+  });
+
+  themeBtn.addEventListener("click", function () {
+    var cur = document.documentElement.getAttribute("data-theme");
+    var isDark = cur
+      ? cur === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = isDark ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    write(THEME_KEY, next);
+  });
+
+  /* ---------- boot ---------- */
+
+  state.session = read(SESSION_KEY, {});
+  var draft = read(DRAFT_KEY, null);
+
+  if (draft && draft.answers) {
+    state.answers = draft.answers;
+    state.step = draft.step || 0;
+    state.startedAt = draft.startedAt || null;
+  }
+  if (state.session.interviewer && !state.answers.interviewer) {
+    state.answers.interviewer = state.session.interviewer;
+    state.answers.area = state.session.area;
+  }
+
+  render();
+
+  if (draft && draft.answers && Object.keys(draft.answers).length > 2 && state.step > 0) {
+    toast("Resumed an interview in progress");
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -296,20 +296,20 @@ export function updateDonation(
 }
 
 // ── Settlement & payouts ─────────────────────────────────────────────────────
+/** One ledger entry as the vendor sees it. `amount` is what THEY earn on the order — the
+ *  platform's take is already netted out server-side and is deliberately not exposed here. */
 export type SettlementEntry = {
   orderId: string;
   entryType: string;
   amount: number;
   gst: number;
-  commission: number;
   currency: string;
   createdAt: string;
 };
 
 export type Settlement = {
   entries: SettlementEntry[];
-  gross: number;
-  commission: number;
+  sales: number;
   refunds: number;
   net: number;
   paidOut: number;

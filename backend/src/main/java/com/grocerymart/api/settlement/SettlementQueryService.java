@@ -32,28 +32,37 @@ public class SettlementQueryService {
     }
 
     // ---- Shop settlement (Story 9.1) -------------------------------------------------------
+
+    /**
+     * The vendor's own view of their ledger. Every amount is what THEY earn — the charged total
+     * minus the platform's take.
+     *
+     * <p>Deliberately omits the commission: a vendor who knows their own price and the commission
+     * on an order can subtract one from the other and recover the normalized price the customer
+     * was shown, along with every competitor's position implied by it. Admin paths keep the full
+     * decomposition; this one must not.
+     */
     @Transactional(readOnly = true)
     public Map<String, Object> shopLedger(UUID ownerId, int limit) {
         UUID shopId = ownShop(ownerId);
         int lim = Math.min(Math.max(limit, 1), 200);
         List<Map<String, Object>> entries = jdbc.query(
-            "SELECT order_id, entry_type, order_total, gst_amount, platform_fee, currency, created_at "
+            "SELECT order_id, entry_type, (order_total - platform_fee) AS vendor_amount, "
+            + "gst_amount, currency, created_at "
             + "FROM settlement_ledger WHERE store_id = ? ORDER BY created_at DESC LIMIT ?",
             (rs, i) -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("orderId", rs.getObject("order_id").toString());
                 m.put("entryType", rs.getString("entry_type"));
-                m.put("amount", rs.getBigDecimal("order_total"));
+                m.put("amount", rs.getBigDecimal("vendor_amount"));
                 m.put("gst", rs.getBigDecimal("gst_amount"));
-                m.put("commission", rs.getBigDecimal("platform_fee"));
                 m.put("currency", rs.getString("currency"));
                 m.put("createdAt", rs.getTimestamp("created_at").toInstant().toString());
                 return m;
             }, shopId, lim);
-        Map<String, Object> fin = financials(shopId, null);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("entries", entries);
-        out.putAll(fin);
+        out.putAll(vendorFinancials(shopId));
         return out;
     }
 
@@ -185,9 +194,50 @@ public class SettlementQueryService {
         BigDecimal gross = (BigDecimal) led.get("gross"), refunds = (BigDecimal) led.get("refunds"),
                    commission = (BigDecimal) led.get("commission");
         BigDecimal net = gross.subtract(commission).subtract(refunds);
+        // Split the commission into its two sources so admins can see where the take comes from.
+        // Reversals negate, so a refunded order contributes zero to both.
+        BigDecimal serviceFees = jdbc.query(
+            "SELECT COALESCE(SUM(CASE WHEN sl.entry_type = 'charge' THEN o.platform_fee "
+            + "ELSE -o.platform_fee END), 0) FROM settlement_ledger sl JOIN orders o ON o.id = sl.order_id "
+            + "WHERE sl.store_id = ? " + (asOf != null ? "AND sl.created_at::date <= ? " : ""),
+            rs -> rs.next() ? rs.getBigDecimal(1) : BigDecimal.ZERO, args);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("gross", gross);
         out.put("commission", commission);
+        out.put("serviceFees", serviceFees);                    // flat per-order fee component
+        out.put("pricingMargin", commission.subtract(serviceFees));   // price-normalization component
+        out.put("vendorPayable", gross.subtract(commission));   // what the vendor's own prices earn
+        out.put("refunds", refunds);
+        out.put("net", net);
+        out.put("paidOut", paidOut);
+        out.put("netOwed", net.subtract(paidOut));
+        return out;
+    }
+
+    /**
+     * Vendor-safe totals: the same money, expressed only in amounts the vendor is entitled to see.
+     * {@code (order_total − platform_fee)} nets out the platform take per entry, so these agree
+     * with {@link #financials} on net and netOwed without revealing the take itself.
+     */
+    private Map<String, Object> vendorFinancials(UUID shopId) {
+        Map<String, Object> led = jdbc.query(
+            "SELECT COALESCE(SUM(order_total - platform_fee) FILTER (WHERE entry_type='charge'),0) AS sales, "
+            + "COALESCE(-SUM(order_total - platform_fee) FILTER (WHERE entry_type='reversal'),0) AS refunds "
+            + "FROM settlement_ledger WHERE store_id = ?",
+            rs -> {
+                rs.next();
+                Map<String, Object> m = new java.util.HashMap<>();
+                m.put("sales", rs.getBigDecimal("sales"));
+                m.put("refunds", rs.getBigDecimal("refunds"));
+                return m;
+            }, shopId);
+        BigDecimal paidOut = jdbc.queryForObject(
+            "SELECT COALESCE(SUM(amount),0) FROM payout WHERE shop_id = ? AND status IN ('paid','manual')",
+            BigDecimal.class, shopId);
+        BigDecimal sales = (BigDecimal) led.get("sales"), refunds = (BigDecimal) led.get("refunds");
+        BigDecimal net = sales.subtract(refunds);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("sales", sales);
         out.put("refunds", refunds);
         out.put("net", net);
         out.put("paidOut", paidOut);

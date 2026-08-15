@@ -89,7 +89,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       Text(
                         _register
                             ? 'Create your customer account'
-                            : 'Compare prices, build a basket, order cheapest.',
+                            : 'Groceries from your nearest store, delivered.',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                             color: Gm.textDim, height: 1.4, fontSize: 13.5),

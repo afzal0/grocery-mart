@@ -99,7 +99,7 @@ export function FinanceTab() {
         <div className="gm-panel-head">
           <div>
             <h2>Finance — settlement reconciliation</h2>
-            <p>Platform gross, commission, refunds and outstanding payouts, per shop.</p>
+            <p>Charged revenue, platform take split by source, and outstanding payouts, per shop.</p>
           </div>
           <form className="gm-toolbar" onSubmit={applyDate}>
             <div className="gm-field">
@@ -126,25 +126,25 @@ export function FinanceTab() {
         {!recon.loading && !recon.error && totals && (
           <>
             <div className="gm-metrics">
-              <div className="gm-glass gm-metric">
-                <div className="label">Gross</div>
-                <div className="value">{money(totals.totalGross, 'AUD')}</div>
+              <div className="gm-metric">
+                <div className="gm-metric-label">Charged to customers</div>
+                <div className="gm-metric-value">{money(totals.totalGross, 'AUD')}</div>
               </div>
-              <div className="gm-glass gm-metric">
-                <div className="label">Commission</div>
-                <div className="value">{money(totals.totalCommission, 'AUD')}</div>
+              <div className="gm-metric">
+                <div className="gm-metric-label">Platform take</div>
+                <div className="gm-metric-value accent">{money(totals.totalCommission, 'AUD')}</div>
               </div>
-              <div className="gm-glass gm-metric">
-                <div className="label">Refunds</div>
-                <div className="value">{money(totals.totalRefunds, 'AUD')}</div>
+              <div className="gm-metric">
+                <div className="gm-metric-label">Refunds</div>
+                <div className="gm-metric-value">{money(totals.totalRefunds, 'AUD')}</div>
               </div>
-              <div className="gm-glass gm-metric">
-                <div className="label">Paid out</div>
-                <div className="value">{money(totals.totalPaidOut, 'AUD')}</div>
+              <div className="gm-metric">
+                <div className="gm-metric-label">Paid out</div>
+                <div className="gm-metric-value">{money(totals.totalPaidOut, 'AUD')}</div>
               </div>
-              <div className="gm-glass gm-metric">
-                <div className="label">Net owed</div>
-                <div className="value accent">{money(totals.totalNetOwed, 'AUD')}</div>
+              <div className="gm-metric">
+                <div className="gm-metric-label">Net owed to vendors</div>
+                <div className="gm-metric-value">{money(totals.totalNetOwed, 'AUD')}</div>
               </div>
             </div>
 
@@ -156,8 +156,10 @@ export function FinanceTab() {
                   <thead>
                     <tr>
                       <th>Shop</th>
-                      <th style={{ textAlign: 'right' }}>Gross</th>
-                      <th style={{ textAlign: 'right' }}>Commission</th>
+                      <th style={{ textAlign: 'right' }}>Charged</th>
+                      <th style={{ textAlign: 'right' }}>Pricing margin</th>
+                      <th style={{ textAlign: 'right' }}>Service fees</th>
+                      <th style={{ textAlign: 'right' }}>Vendor payable</th>
                       <th style={{ textAlign: 'right' }}>Refunds</th>
                       <th style={{ textAlign: 'right' }}>Net</th>
                       <th style={{ textAlign: 'right' }}>Paid out</th>
@@ -174,7 +176,9 @@ export function FinanceTab() {
                           {s.flagged && <Badge tone="danger">flagged</Badge>}
                         </td>
                         <td className="num">{money(s.gross, 'AUD')}</td>
-                        <td className="num">{money(s.commission, 'AUD')}</td>
+                        <td className="num">{money(s.pricingMargin, 'AUD')}</td>
+                        <td className="num">{money(s.serviceFees, 'AUD')}</td>
+                        <td className="num">{money(s.vendorPayable, 'AUD')}</td>
                         <td className="num">{money(s.refunds, 'AUD')}</td>
                         <td className="num">{money(s.net, 'AUD')}</td>
                         <td className="num">{money(s.paidOut, 'AUD')}</td>

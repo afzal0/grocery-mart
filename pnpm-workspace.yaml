@@ -2,7 +2,14 @@ packages:
   - 'apps/shop-portal'
   - 'apps/admin-portal'
   - 'packages/*'
+
+# nx runs a postinstall to fetch its platform-specific native binary. pnpm blocks that
+# script by default and, when it cannot prompt, writes this key back with a placeholder
+# value and exits ERR_PNPM_IGNORED_BUILDS — which fails `pnpm install` outright, locally
+# and on any CI/Vercel build that installs from the repo root. Answering it explicitly
+# is what keeps the install green.
 allowBuilds:
-  nx: set this to true or false
+  nx: true
+
 onlyBuiltDependencies:
   - nx

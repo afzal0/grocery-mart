@@ -5,7 +5,7 @@ services:
   - type: web
     name: grocery-mart-api
     runtime: docker
-    repo: https://github.com/CHANGE-ME/grocery-mart   # set to your GitHub repo
+    repo: https://github.com/afzal0/grocery-mart
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free                       # free spins down after ~15 min idle (cold start ~30-50s)

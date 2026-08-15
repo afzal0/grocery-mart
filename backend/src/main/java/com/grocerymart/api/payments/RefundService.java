@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.grocerymart.api.identity.ApiException;
+import com.grocerymart.api.loyalty.LoyaltyService;
 
 /**
  * Epic 5 (Story 5.10): full refund/cancel — refund by the original method, reverse settlement, and
@@ -25,13 +26,15 @@ public class RefundService {
     private final StripeStubProvider stripe;
     private final WalletService wallet;
     private final SettlementService settlement;
+    private final LoyaltyService loyalty;
 
     public RefundService(JdbcTemplate jdbc, StripeStubProvider stripe, WalletService wallet,
-                         SettlementService settlement) {
+                         SettlementService settlement, LoyaltyService loyalty) {
         this.jdbc = jdbc;
         this.stripe = stripe;
         this.wallet = wallet;
         this.settlement = settlement;
+        this.loyalty = loyalty;
     }
 
     /** Customer (own order) or admin initiates a full refund/cancel. */
@@ -96,6 +99,7 @@ public class RefundService {
         }
         jdbc.update("UPDATE stock_reservation SET status = 'released' WHERE order_id = ? AND status <> 'released'", orderId);
         settlement.recordReversal(orderId, (UUID) o.get("store_id"), total, (BigDecimal) o.get("gst_amount"), currency);
+        loyalty.reverse(orderId);        // claw back the credits awarded when the order was paid
         jdbc.update("UPDATE orders SET payment_status = 'refunded', status = 'cancelled', updated_at = now() "
             + "WHERE id = ?", orderId);
     }

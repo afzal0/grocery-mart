@@ -1,0 +1,549 @@
+/* Grocery-Mart — shared design tokens (canonical).
+   Light-first, Apple-flavoured: system type (SF Pro on Apple platforms), white surfaces,
+   hairline borders, soft radii, shadows only where something genuinely floats.
+
+   This file owns EVERY gm-* class. Each portal's index.css sets --gm-accent and adds
+   nothing else — previously both portals redefined the same class names with diverging
+   rules, which is how .gm-tab.active and .gm-tab[aria-selected] drifted apart.
+
+   Replaces liquid-glass.css (dark glassmorphism). Blur is gone: it cost a repaint on every
+   panel and washed out the dense tables these portals are mostly made of. */
+
+:root {
+  /* Ground & surfaces */
+  --gm-bg:            #F7F8F8;
+  --gm-surface:       #FFFFFF;
+  --gm-surface-sunk:  #FAFBFB;
+  --gm-surface-hover: #F5F7F7;
+
+  /* Ink — neutrals carry a slight green bias so they sit with the accent rather than under it */
+  --gm-text:          #0F1A17;
+  --gm-text-dim:      #5B6B66;
+  --gm-text-faint:    #8A9793;
+
+  /* Lines */
+  --gm-hairline:      rgba(15, 26, 23, 0.09);
+  --gm-hairline-soft: rgba(15, 26, 23, 0.05);
+
+  /* Accent — each portal overrides these two */
+  --gm-accent:        #059669;
+  --gm-accent-ink:    #FFFFFF;
+  --gm-accent-wash:   rgba(5, 150, 105, 0.10);
+
+  /* Semantic status, independent of the accent */
+  --gm-ok:            #047857;
+  --gm-ok-wash:       rgba(4, 120, 87, 0.10);
+  --gm-warn:          #B45309;
+  --gm-warn-wash:     rgba(180, 83, 9, 0.10);
+  --gm-danger:        #B91C1C;
+  --gm-danger-wash:   rgba(185, 28, 28, 0.09);
+  --gm-info:          #1D4ED8;
+  --gm-info-wash:     rgba(29, 78, 216, 0.09);
+
+  /* Radii — Apple's soft-rectangle language, not Swiss 0 and not the old 22px pill look */
+  --gm-radius:        12px;
+  --gm-radius-sm:     8px;
+  --gm-radius-xs:     6px;
+
+  /* Elevation — two levels only; flat surfaces use a hairline instead of a shadow */
+  --gm-shadow-sm:     0 1px 2px rgba(15, 26, 23, 0.05);
+  --gm-shadow-md:     0 8px 24px rgba(15, 26, 23, 0.10), 0 2px 6px rgba(15, 26, 23, 0.05);
+
+  /* Type — system stack IS SF Pro on Apple platforms, with no webfont round-trip */
+  --gm-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+             system-ui, sans-serif;
+  --gm-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* 4px rhythm */
+  --gm-s1: 4px;  --gm-s2: 8px;  --gm-s3: 12px; --gm-s4: 16px;
+  --gm-s5: 24px; --gm-s6: 32px; --gm-s7: 48px;
+
+  /* Layered z-index scale */
+  --gm-z-nav: 20; --gm-z-sticky: 30; --gm-z-toast: 100;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: var(--gm-font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
+  border-radius: var(--gm-radius-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- shell ---------- */
+
+.gm-app, .gm-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.gm-main {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: var(--gm-s5) var(--gm-s5) var(--gm-s7);
+}
+
+.gm-topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--gm-z-nav);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--gm-hairline);
+}
+
+.gm-topbar-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: var(--gm-s3) var(--gm-s5);
+  display: flex;
+  align-items: center;
+  gap: var(--gm-s4);
+}
+
+.gm-brand {
+  display: flex; align-items: center; gap: var(--gm-s2);
+  font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+  margin: 0;
+}
+.gm-brand-mark {
+  width: 26px; height: 26px; border-radius: var(--gm-radius-xs);
+  background: var(--gm-accent); color: var(--gm-accent-ink);
+  display: grid; place-items: center; flex: none;
+}
+.gm-brand-sub { color: var(--gm-text-dim); font-weight: 400; }
+
+.gm-whoami {
+  margin-left: auto;
+  display: flex; align-items: center; gap: var(--gm-s3);
+  font-size: 13px; color: var(--gm-text-dim);
+}
+
+/* ---------- tabs ---------- */
+
+.gm-tabs {
+  display: flex; gap: var(--gm-s1); flex-wrap: wrap;
+  padding: var(--gm-s1);
+  background: var(--gm-surface-sunk);
+  border: 1px solid var(--gm-hairline);
+  border-radius: var(--gm-radius);
+}
+
+.gm-tab {
+  appearance: none; cursor: pointer;
+  border: 1px solid transparent; background: transparent;
+  color: var(--gm-text-dim);
+  padding: var(--gm-s2) var(--gm-s4);
+  min-height: 36px;
+  border-radius: var(--gm-radius-sm);
+  font-size: 14px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: var(--gm-s2);
+  transition: background 160ms ease, color 160ms ease;
+}
+.gm-tab:hover { background: var(--gm-surface-hover); color: var(--gm-text); }
+
+/* Both selectors, because the two portals mark the active tab differently and neither
+   markup should have to change to adopt this stylesheet. */
+.gm-tab.active,
+.gm-tab[aria-selected='true'] {
+  background: var(--gm-surface);
+  border-color: var(--gm-hairline);
+  color: var(--gm-text);
+  font-weight: 600;
+  box-shadow: var(--gm-shadow-sm);
+}
+
+/* ---------- surfaces ---------- */
+
+.gm-card, .gm-panel, .gm-glass {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-hairline);
+  border-radius: var(--gm-radius);
+  padding: var(--gm-s5);
+}
+
+.gm-subcard {
+  background: var(--gm-surface-sunk);
+  border: 1px solid var(--gm-hairline-soft);
+  border-radius: var(--gm-radius-sm);
+  padding: var(--gm-s4);
+}
+
+.gm-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--gm-s4);
+}
+
+.gm-card-title, .gm-panel h2, .gm-panel h3 {
+  margin: 0 0 var(--gm-s3);
+  font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+}
+.gm-card-sub { margin: 0 0 var(--gm-s4); color: var(--gm-text-dim); font-size: 13.5px; }
+
+/* ---------- buttons ---------- */
+
+.gm-btn {
+  appearance: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--gm-s2);
+  min-height: 40px;                 /* comfortably above the 44px target with padding */
+  padding: 0 var(--gm-s4);
+  border-radius: var(--gm-radius-sm);
+  border: 1px solid var(--gm-accent);
+  background: var(--gm-accent);
+  color: var(--gm-accent-ink);
+  font-size: 14px; font-weight: 600;
+  transition: filter 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+.gm-btn:hover:not(:disabled) { filter: brightness(0.94); }
+.gm-btn:active:not(:disabled) { filter: brightness(0.88); }
+.gm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.gm-btn-ghost {
+  appearance: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--gm-s2);
+  min-height: 40px; padding: 0 var(--gm-s4);
+  border-radius: var(--gm-radius-sm);
+  border: 1px solid var(--gm-hairline);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: 14px; font-weight: 500;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.gm-btn-ghost:hover:not(:disabled) { background: var(--gm-surface-hover); border-color: var(--gm-text-faint); }
+.gm-btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.gm-btn-danger {
+  border-color: var(--gm-danger);
+  background: var(--gm-surface);
+  color: var(--gm-danger);
+}
+.gm-btn-danger:hover:not(:disabled) { background: var(--gm-danger-wash); }
+
+.gm-btn-sm, .gm-btn-ghost.gm-btn-sm { min-height: 32px; padding: 0 var(--gm-s3); font-size: 13px; }
+
+.gm-link-btn {
+  appearance: none; background: none; border: 0; cursor: pointer;
+  color: var(--gm-accent); font-size: 13.5px; font-weight: 500;
+  padding: var(--gm-s1) 0;
+  text-decoration: none;
+}
+.gm-link-btn:hover { text-decoration: underline; }
+
+.gm-row-actions { display: flex; gap: var(--gm-s2); flex-wrap: wrap; align-items: center; }
+
+/* ---------- forms ---------- */
+
+.gm-field { display: flex; flex-direction: column; gap: var(--gm-s2); margin-bottom: var(--gm-s4); }
+.gm-field > label { font-size: 13px; font-weight: 500; color: var(--gm-text-dim); }
+
+.gm-input, .gm-select, textarea.gm-input {
+  width: 100%;
+  min-height: 40px;
+  padding: var(--gm-s2) var(--gm-s3);
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-hairline);
+  border-radius: var(--gm-radius-sm);
+  color: var(--gm-text);
+  font-size: 15px;                  /* 15px+ avoids iOS zoom-on-focus */
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.gm-input::placeholder { color: var(--gm-text-faint); }
+.gm-input:focus, .gm-select:focus {
+  outline: none;
+  border-color: var(--gm-accent);
+  box-shadow: 0 0 0 3px var(--gm-accent-wash);
+}
+.gm-input:disabled, .gm-select:disabled { background: var(--gm-surface-sunk); opacity: 0.6; cursor: not-allowed; }
+textarea.gm-input { min-height: 88px; resize: vertical; }
+
+.gm-select { appearance: none; padding-right: var(--gm-s6); cursor: pointer; }
+
+.gm-inline-input {
+  min-height: 32px; width: 100px;
+  padding: var(--gm-s1) var(--gm-s2);
+  border: 1px solid var(--gm-hairline);
+  border-radius: var(--gm-radius-xs);
+  background: var(--gm-surface);
+  font-family: var(--gm-font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.gm-inline-input:focus { outline: none; border-color: var(--gm-accent); }
+
+.gm-toolbar {
+  display: flex; gap: var(--gm-s3); align-items: flex-end; flex-wrap: wrap;
+  margin-bottom: var(--gm-s4);
+}
+.gm-toolbar .gm-field { margin-bottom: 0; }
+
+.gm-hint { font-size: 12.5px; color: var(--gm-text-dim); margin: var(--gm-s2) 0 0; }
+
+/* ---------- tables ---------- */
+
+/* Wrap wide tables so the page body never scrolls sideways. */
+.gm-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+.gm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.gm-table th {
+  text-align: left;
+  font-size: 11.5px; font-weight: 600;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--gm-text-faint);
+  padding: var(--gm-s3);
+  border-bottom: 1px solid var(--gm-hairline);
+  white-space: nowrap;
+}
+.gm-table td {
+  padding: var(--gm-s3);
+  border-bottom: 1px solid var(--gm-hairline-soft);
+  vertical-align: middle;
+}
+.gm-table tbody tr:last-child td { border-bottom: 0; }
+.gm-table tbody tr:hover { background: var(--gm-surface-hover); }
+/* Money and counts line up only with tabular figures. */
+.gm-table td.num, .gm-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.gm-kv { display: grid; grid-template-columns: auto 1fr; gap: var(--gm-s2) var(--gm-s4); font-size: 14px; }
+.gm-kv dt { color: var(--gm-text-dim); }
+.gm-kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.gm-list { list-style: none; margin: 0; padding: 0; }
+.gm-list-item {
+  display: flex; align-items: center; gap: var(--gm-s3);
+  padding: var(--gm-s3) 0;
+  border-bottom: 1px solid var(--gm-hairline-soft);
+}
+.gm-list-item:last-child { border-bottom: 0; }
+
+/* ---------- metrics ---------- */
+
+.gm-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--gm-s3);
+  margin-bottom: var(--gm-s4);
+}
+.gm-metric {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-hairline);
+  border-radius: var(--gm-radius);
+  padding: var(--gm-s4);
+}
+.gm-metric-label {
+  font-size: 12px; color: var(--gm-text-dim);
+  margin-bottom: var(--gm-s2);
+}
+.gm-metric-value {
+  font-size: 24px; font-weight: 600; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.gm-metric-value.accent { color: var(--gm-accent); }
+.gm-metric-value.danger { color: var(--gm-danger); }
+
+/* ---------- status ---------- */
+
+.gm-badge {
+  display: inline-flex; align-items: center; gap: var(--gm-s1);
+  padding: 3px var(--gm-s2);
+  border-radius: var(--gm-radius-xs);
+  font-size: 11.5px; font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: var(--gm-surface-sunk);
+  color: var(--gm-text-dim);
+}
+.gm-badge.ok      { background: var(--gm-ok-wash);     color: var(--gm-ok); }
+.gm-badge.warn    { background: var(--gm-warn-wash);   color: var(--gm-warn); }
+.gm-badge.info    { background: var(--gm-info-wash);   color: var(--gm-info); }
+.gm-badge.neutral { background: var(--gm-surface-sunk); color: var(--gm-text-dim); }
+/* `bad` and `danger` are the same tone — the two portals each picked a different word. */
+.gm-badge.danger, .gm-badge.bad { background: var(--gm-danger-wash); color: var(--gm-danger); }
+
+.gm-pill {
+  display: inline-flex; align-items: center; gap: var(--gm-s2);
+  padding: var(--gm-s1) var(--gm-s3);
+  border-radius: 999px;
+  border: 1px solid var(--gm-hairline);
+  background: var(--gm-surface);
+  font-size: 13px; color: var(--gm-text-dim);
+}
+
+.gm-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--gm-text-faint); }
+.gm-dot.online  { background: var(--gm-ok); }
+.gm-dot.offline { background: var(--gm-danger); }
+.gm-dot.pending { background: var(--gm-warn); }
+
+.gm-mono, .gm-code {
+  font-family: var(--gm-font-mono);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.gm-code {
+  background: var(--gm-surface-sunk);
+  border: 1px solid var(--gm-hairline-soft);
+  border-radius: var(--gm-radius-xs);
+  padding: 2px var(--gm-s2);
+}
+.gm-ok { color: var(--gm-ok); }
+
+/* ---------- feedback ---------- */
+
+.gm-state, .gm-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--gm-s3);
+  padding: var(--gm-s7) var(--gm-s5);
+  text-align: center;
+  color: var(--gm-text-dim);
+  font-size: 14px;
+}
+.gm-state-title { font-size: 15px; font-weight: 600; color: var(--gm-text); }
+
+.gm-spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--gm-hairline);
+  border-top-color: var(--gm-accent);
+  border-radius: 50%;
+  animation: gm-spin 700ms linear infinite;
+}
+@keyframes gm-spin { to { transform: rotate(360deg); } }
+
+.gm-flash, .gm-toast {
+  display: flex; align-items: center; gap: var(--gm-s2);
+  padding: var(--gm-s3) var(--gm-s4);
+  border-radius: var(--gm-radius-sm);
+  border: 1px solid var(--gm-hairline);
+  background: var(--gm-surface);
+  box-shadow: var(--gm-shadow-sm);
+  font-size: 14px;
+  margin-bottom: var(--gm-s4);
+}
+.gm-flash.ok     { border-color: var(--gm-ok);     background: var(--gm-ok-wash);     color: var(--gm-ok); }
+.gm-flash.danger,
+.gm-flash.bad    { border-color: var(--gm-danger); background: var(--gm-danger-wash); color: var(--gm-danger); }
+.gm-flash.warn   { border-color: var(--gm-warn);   background: var(--gm-warn-wash);   color: var(--gm-warn); }
+
+.gm-toast {
+  position: fixed;
+  bottom: var(--gm-s5); left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--gm-z-toast);
+  box-shadow: var(--gm-shadow-md);
+  margin: 0;
+}
+
+/* ---------- auth ---------- */
+
+.gm-auth {
+  min-height: 100vh;
+  display: grid; place-items: center;
+  padding: var(--gm-s5);
+}
+.gm-auth-card {
+  width: 100%; max-width: 380px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-hairline);
+  border-radius: var(--gm-radius);
+  padding: var(--gm-s6);
+  box-shadow: var(--gm-shadow-sm);
+}
+.gm-auth-card h1 { margin: 0 0 var(--gm-s2); font-size: 21px; font-weight: 600; letter-spacing: -0.02em; }
+.gm-auth-card p  { margin: 0 0 var(--gm-s5); color: var(--gm-text-dim); font-size: 14px; }
+.gm-auth-foot    { margin-top: var(--gm-s5); text-align: center; font-size: 12px; color: var(--gm-text-faint); }
+
+/* ---------- panel header ---------- */
+
+/* Title + description on the left, actions pushed right. */
+.gm-panel-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--gm-s4); flex-wrap: wrap;
+  margin-bottom: var(--gm-s4);
+}
+.gm-panel-head h2, .gm-panel-head h3 {
+  margin: 0 0 var(--gm-s1);
+  font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+}
+.gm-panel-head p { margin: 0; color: var(--gm-text-dim); font-size: 13.5px; }
+
+/* ---------- key/value stat ---------- */
+
+.gm-kv-item {
+  background: var(--gm-surface-sunk);
+  border: 1px solid var(--gm-hairline-soft);
+  border-radius: var(--gm-radius-sm);
+  padding: var(--gm-s3);
+}
+.gm-kv-item .label { font-size: 12px; color: var(--gm-text-dim); margin-bottom: var(--gm-s1); }
+.gm-kv-item .value {
+  font-size: 18px; font-weight: 600;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+}
+.gm-kv-item .value.accent { color: var(--gm-accent); }
+
+/* When .gm-kv wraps .gm-kv-item cards it is a grid of tiles, not a definition list. */
+.gm-kv:has(.gm-kv-item) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--gm-s3);
+  margin-bottom: var(--gm-s4);
+}
+
+/* ---------- compatibility ----------
+   Older class names still present in the portal markup. Mapped here rather than renamed
+   across five large tab components, where the edit risk outweighs the tidiness. */
+
+.gm-error {
+  display: flex; align-items: center; gap: var(--gm-s2);
+  padding: var(--gm-s3) var(--gm-s4);
+  border-radius: var(--gm-radius-sm);
+  border: 1px solid var(--gm-danger);
+  background: var(--gm-danger-wash);
+  color: var(--gm-danger);
+  font-size: 14px;
+  margin: var(--gm-s3) 0;
+}
+.gm-landing { min-height: 100vh; display: grid; place-items: center; padding: var(--gm-s5); }
+.gm-form { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: var(--gm-s3); }
+.gm-foot { margin-top: var(--gm-s4); text-align: center; font-size: 12px; color: var(--gm-text-faint); }
+.gm-who h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.gm-who small { color: var(--gm-text-dim); font-size: 12px; }
+.gm-topbar-actions { margin-left: auto; display: flex; gap: var(--gm-s2); }
+/* Was a gradient in the glass theme; now simply the accent. */
+.gm-gradient-text { color: var(--gm-accent); }
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 768px) {
+  .gm-main { padding: var(--gm-s4) var(--gm-s4) var(--gm-s6); }
+  .gm-topbar-inner { padding: var(--gm-s3) var(--gm-s4); flex-wrap: wrap; }
+  .gm-tabs { overflow-x: auto; flex-wrap: nowrap; }
+  .gm-tab { white-space: nowrap; }
+  .gm-metrics { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+}

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../theme.dart';
+import '../widgets/totals_card.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   const OrderDetailScreen({super.key, required this.orderId, this.initial});
@@ -197,26 +198,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Totals
-                        GmGlass(
-                          child: Column(children: [
-                            _row('Items subtotal',
-                                GmUi.money(o?['itemsSubtotal'] as num?, currency)),
-                            const SizedBox(height: 6),
-                            _row('Delivery fee',
-                                GmUi.money(o?['deliveryFee'] as num?, currency)),
-                            const SizedBox(height: 6),
-                            _row('GST (incl.)',
-                                GmUi.money(o?['gstInclusive'] as num?, currency)),
-                            const Divider(
-                                color: Color(0x22FFFFFF), height: 22),
-                            _row(
-                                'Grand total',
-                                GmUi.money(
-                                    o?['grandTotal'] as num?, currency),
-                                bold: true),
-                          ]),
-                        ),
+                        // Totals — same widget the cart uses, so the breakdown the customer
+                        // approved is the breakdown they see afterwards.
+                        if (o != null)
+                          TotalsCard(totals: o, creditsLabel: 'Credits earned'),
                         const SizedBox(height: 12),
 
                         // Delivery info
@@ -284,22 +269,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _row(String label, String value, {bool bold = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label,
-            style: TextStyle(
-                color: bold ? Gm.text : Gm.textDim,
-                fontWeight: bold ? FontWeight.w700 : FontWeight.w400)),
-        Text(value,
-            style: TextStyle(
-                color: Gm.text,
-                fontSize: bold ? 18 : 14,
-                fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
-      ],
-    );
-  }
 }
 
 /// Polls GET /orders/{id}/tracking every ~4s.

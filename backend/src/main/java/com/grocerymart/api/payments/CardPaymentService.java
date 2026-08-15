@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.grocerymart.api.delivery.DeliveryService;
 import com.grocerymart.api.identity.ApiException;
+import com.grocerymart.api.loyalty.LoyaltyService;
 
 /**
  * Epic 5 (Story 5.7): card payment with manual capture — authorize → reserve stock → capture.
@@ -27,16 +28,18 @@ public class CardPaymentService {
     private final JdbcTemplate jdbc;
     private final StripeStubProvider stripe;
     private final SettlementService settlement;
+    private final LoyaltyService loyalty;
     private final DeliveryService delivery;
     private final int reservationTtlMinutes;
 
     public CardPaymentService(JdbcTemplate jdbc, StripeStubProvider stripe, SettlementService settlement,
-                              DeliveryService delivery,
+                              DeliveryService delivery, LoyaltyService loyalty,
                               @Value("${grocerymart.payments.reservation-ttl-minutes}") int reservationTtlMinutes) {
         this.jdbc = jdbc;
         this.stripe = stripe;
         this.settlement = settlement;
         this.delivery = delivery;
+        this.loyalty = loyalty;
         this.reservationTtlMinutes = reservationTtlMinutes;
     }
 
@@ -121,6 +124,7 @@ public class CardPaymentService {
             + "WHERE id = ?", orderId);
         settlement.recordCharge(orderId, (UUID) order.get("store_id"),
             (BigDecimal) order.get("grand_total"), (BigDecimal) order.get("gst_amount"), (String) order.get("currency"));
+        loyalty.award(orderId);          // credits the price-normalization spread back to the customer
         delivery.onOrderPaid(orderId);   // immediate deliveries enter the dispatch queue
     }
 

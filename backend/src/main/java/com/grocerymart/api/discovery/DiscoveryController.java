@@ -5,20 +5,15 @@ import java.util.Map;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.grocerymart.api.discovery.DiscoveryDtos.BasketCompareRequest;
-
-import jakarta.validation.Valid;
-
-/** Customer discovery + basket comparison (Epic 4). Any authenticated user. The explicit
- *  {@code @PreAuthorize} expresses authorization at the method layer too (defense in depth), so a
- *  future change to the global SecurityConfig cannot silently expose stock levels / the expensive
- *  PostGIS comparison queries to anonymous callers. */
+/** Customer discovery (Epic 4). Any authenticated user. The explicit {@code @PreAuthorize}
+ *  expresses authorization at the method layer too (defense in depth), so a future change to the
+ *  global SecurityConfig cannot silently expose stock levels or store pricing to anonymous
+ *  callers. */
 @RestController
 @RequestMapping("/api/v1")
 @PreAuthorize("isAuthenticated()")
@@ -38,17 +33,16 @@ public class DiscoveryController {
         return discovery.nearbyShops(lat, lng, radiusKm * 1000, cuisine);
     }
 
-    /** One store's in-stock, canonically-linked catalog — the store "restaurant page". */
+    /**
+     * One store's in-stock, canonically-linked catalog — the storefront.
+     *
+     * <p>When the customer's coordinates are supplied, {@code price} is the normalized display
+     * price for their area rather than this store's own price. Callers should always send them.
+     */
     @GetMapping("/stores/{shopId}/products")
-    public List<Map<String, Object>> storeProducts(@org.springframework.web.bind.annotation.PathVariable
-                                                    java.util.UUID shopId) {
-        return discovery.storeProducts(shopId);
-    }
-
-    /** Whole-basket comparison across nearby stores (Stories 4.3/4.4). */
-    @PostMapping("/basket/compare")
-    public Map<String, Object> compare(@Valid @RequestBody BasketCompareRequest req) {
-        double radiusMeters = (req.radiusKm() != null ? req.radiusKm() : 10) * 1000;
-        return discovery.compareBasket(req.lat(), req.lng(), radiusMeters, req.items());
+    public List<Map<String, Object>> storeProducts(@PathVariable java.util.UUID shopId,
+                                                   @RequestParam(required = false) Double lat,
+                                                   @RequestParam(required = false) Double lng) {
+        return discovery.storeProducts(shopId, lat, lng);
     }
 }

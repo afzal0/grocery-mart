@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { portalLogin, type Me } from '../lib/api';
 import { setTokens } from '../auth';
+import { Icon } from './Icon';
 
 export function LoginScreen({ onLoggedIn }: { onLoggedIn: (user: Me) => void }) {
   const [email, setEmail] = useState('');
@@ -24,19 +25,35 @@ export function LoginScreen({ onLoggedIn }: { onLoggedIn: (user: Me) => void }) 
   }
 
   return (
-    <main className="gm-landing">
-      <form className="gm-glass gm-card gm-form" onSubmit={submit}>
-        <h1>
-          Grocery-Mart <span className="gm-gradient-text">Admin</span>
-        </h1>
-        <p>Sign in to approve stores, govern the catalog, and oversee the platform.</p>
-        <input className="gm-input" type="email" placeholder="Email" autoComplete="username"
-          value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="gm-input" type="password" placeholder="Password" autoComplete="current-password"
-          value={password} onChange={(e) => setPassword(e.target.value)} required />
-        {error && <div className="gm-error">{error}</div>}
-        <button className="gm-btn" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-        <div className="gm-foot">Liquid Glass · React + Vite · Epic 2 auth</div>
+    <main className="gm-auth">
+      <form className="gm-auth-card" onSubmit={submit}>
+        <span className="gm-brand-mark" style={{ marginBottom: 'var(--gm-s4)' }}>
+          <Icon name="shield" size={16} />
+        </span>
+        <h1>Admin Console</h1>
+        <p>Sign in to approve stores, govern the catalog and oversee the platform.</p>
+
+        <div className="gm-field">
+          <label htmlFor="email">Email</label>
+          <input
+            id="email" className="gm-input" type="email" autoComplete="username"
+            value={email} onChange={(e) => setEmail(e.target.value)} required
+          />
+        </div>
+        <div className="gm-field">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password" className="gm-input" type="password" autoComplete="current-password"
+            value={password} onChange={(e) => setPassword(e.target.value)} required
+          />
+        </div>
+
+        {error && <div className="gm-flash danger" role="alert">{error}</div>}
+
+        <button className="gm-btn" type="submit" disabled={busy} style={{ width: '100%' }}>
+          {busy ? 'Signing in…' : 'Sign in'}
+        </button>
+        <div className="gm-auth-foot">Grocery-Mart · Platform operations</div>
       </form>
     </main>
   );

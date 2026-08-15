@@ -25,7 +25,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _loading = true;
   String? _error;
 
-  List<dynamic> _offers = const [];
   Map<String, dynamic>? _rating;
   List<dynamic> _reviews = const [];
   String? _reviewsCursor;
@@ -45,15 +44,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     try {
       final id = widget.canonicalId;
       final results = await Future.wait([
-        _api.get('/catalog/canonical/$id/offers'),
         _api.get('/products/$id/rating'),
         _api.get('/products/$id/reviews', query: {'limit': 10}),
       ]);
-      final offers = (results[0] as List?) ?? const [];
-      final rating = results[1] as Map<String, dynamic>?;
-      final reviewsPage = results[2] as Map<String, dynamic>?;
+      final rating = results[0] as Map<String, dynamic>?;
+      final reviewsPage = results[1] as Map<String, dynamic>?;
       setState(() {
-        _offers = offers;
         _rating = rating;
         _reviews = (reviewsPage?['items'] as List?) ?? const [];
         _reviewsCursor = reviewsPage?['nextCursor'] as String?;
@@ -133,20 +129,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         const SizedBox(height: 14),
                         _ratingSummary(),
                         const SizedBox(height: 18),
-                        const Text('Prices across stores (cheapest first)',
-                            style: TextStyle(
-                                color: Gm.text,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 10),
-                        if (_offers.isEmpty)
-                          const GmEmpty(
-                              message: 'No stores currently stock this item.',
-                              icon: Icons.inventory_2_outlined)
-                        else
-                          ..._offers.asMap().entries.map((e) =>
-                              _OfferRow(offer: e.value, cheapest: e.key == 0)),
-                        const SizedBox(height: 18),
                         Row(children: [
                           const Text('Reviews',
                               style: TextStyle(
@@ -215,57 +197,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 }
 
-class _OfferRow extends StatelessWidget {
-  const _OfferRow({required this.offer, required this.cheapest});
-  final dynamic offer;
-  final bool cheapest;
-
-  @override
-  Widget build(BuildContext context) {
-    // snake_case: shop_id, shop_name, price_amount, currency, stock
-    final m = offer as Map<String, dynamic>;
-    final price = m['price_amount'];
-    final currency = (m['currency'] ?? 'AUD').toString();
-    final stock = m['stock'];
-    final inStock = stock is num ? stock > 0 : true;
-    return GmGlass(
-      margin: const EdgeInsets.only(bottom: 8),
-      strong: cheapest,
-      child: Row(children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Flexible(
-                  child: Text('${m['shop_name'] ?? 'Store'}',
-                      style: const TextStyle(
-                          color: Gm.text, fontWeight: FontWeight.w700)),
-                ),
-                if (cheapest) ...[
-                  const SizedBox(width: 8),
-                  const GmBadge('Cheapest',
-                      color: Gm.accent, icon: Icons.bolt),
-                ],
-              ]),
-              const SizedBox(height: 4),
-              Text(
-                inStock
-                    ? (stock is num ? 'In stock · $stock' : 'In stock')
-                    : 'Out of stock',
-                style: TextStyle(
-                    color: inStock ? Gm.textDim : Gm.danger, fontSize: 12.5),
-              ),
-            ],
-          ),
-        ),
-        Text(GmUi.money(price as num?, currency),
-            style: const TextStyle(
-                color: Gm.text, fontSize: 17, fontWeight: FontWeight.w800)),
-      ]),
-    );
-  }
-}
 
 class _ReviewCard extends StatelessWidget {
   const _ReviewCard({required this.review});
